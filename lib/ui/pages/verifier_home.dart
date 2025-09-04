@@ -1,7 +1,7 @@
-// lib/ui/pages/verifier_home.dart
 import 'package:flutter/material.dart';
 import '../../services/supabase_service.dart';
 import 'package:certichain/ui/auth/login_page.dart';
+
 
 class VerifierHomePage extends StatelessWidget {
   const VerifierHomePage({super.key});
