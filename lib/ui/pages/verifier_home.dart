@@ -51,7 +51,7 @@ class VerifierHomePage extends StatelessWidget {
         title: const Text("CertiChain", style: TextStyle(color: Colors.white)),
         actions: [
           IconButton(
-            icon: const Icon(Icons.account_circle, color: Colors.redAccent),
+            icon: const Icon(Icons.account_circle, color: Colors.white),
             onPressed: () => _showLogoutSheet(context),
           ),
         ],
