@@ -1,4 +1,3 @@
-// lib/ui/auth/signup_page.dart
 import 'package:flutter/material.dart';
 import '../../services/supabase_service.dart';
 import '../theme/app_theme.dart';
@@ -28,10 +27,36 @@ class _SignupPageState extends State<SignupPage> {
       );
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Signup successful! Please login.")),
+        // ✅ Show popup dialog after signup
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            title: const Row(
+              children: [
+                Icon(Icons.mark_email_read, color: Colors.deepPurple),
+                SizedBox(width: 8),
+                Text("Verify Your Email"),
+              ],
+            ),
+            content: const Text(
+              "We’ve sent a verification link to your email. "
+                  "Please check your inbox and verify your account before logging in.",
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context); // close dialog
+                  Navigator.pop(context); // go back to login page
+                },
+                child: const Text("OK"),
+              ),
+            ],
+          ),
         );
-        Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {
@@ -113,13 +138,16 @@ class _SignupPageState extends State<SignupPage> {
                   items: const [
                     DropdownMenuItem(
                         value: 'Student',
-                        child: Text('Student', style: TextStyle(color: Colors.white))),
+                        child: Text('Student',
+                            style: TextStyle(color: Colors.white))),
                     DropdownMenuItem(
                         value: 'Issuer',
-                        child: Text('Issuer', style: TextStyle(color: Colors.white))),
+                        child: Text('Issuer',
+                            style: TextStyle(color: Colors.white))),
                     DropdownMenuItem(
                         value: 'Verifier',
-                        child: Text('Verifier', style: TextStyle(color: Colors.white))),
+                        child: Text('Verifier',
+                            style: TextStyle(color: Colors.white))),
                   ],
                   onChanged: (val) => setState(() => _selectedRole = val!),
                   decoration: _dropdownDecoration(),
