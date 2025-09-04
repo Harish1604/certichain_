@@ -1,11 +1,8 @@
-// lib/services/supabase_service.dart
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SupabaseService {
-  // client getter
   static SupabaseClient get client => Supabase.instance.client;
 
-  // Signup helper: creates auth user + profile row
   static Future<void> signUpUser({
     required String email,
     required String password,
@@ -18,7 +15,6 @@ class SupabaseService {
       throw Exception('Signup failed: no user returned.');
     }
 
-    // insert profile row
     final insertRes = await client.from('profiles').insert({
       'user_id': user.id,
       'email': email,
@@ -56,15 +52,12 @@ class SupabaseService {
     return profile['role'] as String;
   }
 
-  // IMPORTANT: signOut method (fixes your error)
   static Future<void> signOut() async {
     await client.auth.signOut();
   }
 
-  // Helper: current user
   static User? get currentUser => client.auth.currentUser;
 
-  // Helper: fetch role for current user (if you need it elsewhere)
   static Future<String> getCurrentUserRole() async {
     final user = currentUser;
     if (user == null) throw Exception('No current user.');
