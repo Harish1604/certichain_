@@ -9,24 +9,36 @@ class SupabaseService {
     required String password,
     required String fullName,
     required String role,
+    String? rollNo,
+    String? batch,
+    String? course,
+    String? degree,
   }) async {
-    final res = await client.auth.signUp(
-      email: email,
-      password: password,
-    );
-
+    // 1️⃣ Create user in Auth (trigger handles profile insert)
+    final res = await client.auth.signUp(email: email, password: password);
     final user = res.user;
     if (user == null) throw Exception('Signup failed: no user returned.');
 
-    final insertRes = await client.from('profiles').insert({
-      'user_id': user.id,
-      'email': email,
+    // 2️⃣ Update extra profile fields (full_name + role)
+    await client.from('profiles').update({
       'full_name': fullName,
       'role': role,
-    }).select(); // 👈 ensure execution + returns rows
+    }).eq('user_id', user.id);
 
-    if (insertRes.isEmpty) {
-      throw Exception('Failed to insert profile row.');
+    // 3️⃣ If student, add to students table
+    if (role == 'student') {
+      if (rollNo == null || batch == null || course == null || degree == null) {
+        throw Exception('Missing student details for signup.');
+      }
+
+      await client.from('students').insert({
+        'roll_no': rollNo,
+        'full_name': fullName,
+        'batch': batch,
+        'course': course,
+        'degree': degree,
+        'profile_id': user.id, // ✅ direct link via user_id
+      });
     }
   }
 
@@ -39,9 +51,8 @@ class SupabaseService {
       email: email,
       password: password,
     );
-
     final user = res.user;
-    if (user == null) throw Exception('Login failed: invalid credentials.');
+    if (user == null) throw Exception('Login failed.');
 
     final profile = await client
         .from('profiles')
@@ -50,7 +61,7 @@ class SupabaseService {
         .maybeSingle();
 
     if (profile == null || profile['role'] == null) {
-      throw Exception('Profile not found for user.');
+      throw Exception('Profile not found.');
     }
 
     return profile['role'] as String;
@@ -81,37 +92,61 @@ class SupabaseService {
     return profile['role'] as String;
   }
 
-  // ---------------- SAVE CERTIFICATE ----------------
+
+// ---------------- SAVE CERTIFICATE ----------------
   static Future<void> saveCertificate({
     required String cid,
     required String hash,
     required String fileName,
+    required String studentRollNo,
   }) async {
     final user = currentUser;
     if (user == null) throw Exception('No logged in user.');
 
-    final insertRes = await client.from('certificates').insert({
-      'user_id': user.id,
+    await client.from('certificates').insert({
+      'user_id': user.id, // uploader (university/admin)
+      'student_roll_no': studentRollNo,
       'cid': cid,
       'hash': hash,
       'file_name': fileName,
       'created_at': DateTime.now().toIso8601String(),
-    }).select(); // 👈 execute & return inserted rows
-
-    if (insertRes.isEmpty) {
-      throw Exception('Failed to save certificate.');
-    }
+    });
   }
 
-  // ---------------- FETCH USER CERTIFICATES ----------------
-  static Future<List<Map<String, dynamic>>> fetchCertificates() async {
+  // ---------------- FETCH CERTIFICATES FOR CURRENT STUDENT ----------------
+  static Future<List<Map<String, dynamic>>> fetchMyCertificates() async {
     final user = currentUser;
     if (user == null) throw Exception('No logged in user.');
+
+    final student = await client
+        .from('students')
+        .select('roll_no')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+    if (student == null) throw Exception('Student record not found.');
+
+    final rollNo = student['roll_no'];
 
     final res = await client
         .from('certificates')
         .select()
-        .eq('user_id', user.id)
+        .eq('student_roll_no', rollNo)
+        .order('created_at', ascending: false);
+
+    return List<Map<String, dynamic>>.from(res);
+  }
+
+  // ---------------- FETCH ALL STUDENT CERTIFICATES ----------------
+  static Future<List<Map<String, dynamic>>> fetchAllCertificates() async {
+    final role = await getCurrentUserRole();
+    if (role != 'university' && role != 'admin') {
+      throw Exception('Not authorized to view all certificates.');
+    }
+
+    final res = await client
+        .from('certificates')
+        .select('*, students(full_name, roll_no, course, batch, degree)')
         .order('created_at', ascending: false);
 
     return List<Map<String, dynamic>>.from(res);

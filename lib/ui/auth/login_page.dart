@@ -23,12 +23,15 @@ class _LoginPageState extends State<LoginPage> {
         password: _passwordController.text.trim(),
       );
 
-      if (role == 'Student') {
+      // ✅ Match lowercase roles from DB
+      if (role == 'student') {
         Navigator.pushReplacementNamed(context, '/student');
-      } else if (role == 'Issuer') {
+      } else if (role == 'university') {
         Navigator.pushReplacementNamed(context, '/issuer');
-      } else if (role == 'Verifier') {
+      } else if (role == 'admin') {
         Navigator.pushReplacementNamed(context, '/verifier');
+      } else {
+        throw Exception("Unknown role: $role");
       }
     } catch (e) {
       ScaffoldMessenger.of(context)

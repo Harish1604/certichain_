@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../services/supabase_service.dart';
-import '../theme/app_theme.dart';
 
 class SignupPage extends StatefulWidget {
   const SignupPage({super.key});
@@ -13,7 +12,12 @@ class _SignupPageState extends State<SignupPage> {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  String _selectedRole = "Student";
+  final _rollNoController = TextEditingController();
+  final _batchController = TextEditingController();
+  final _courseController = TextEditingController();
+  final _degreeController = TextEditingController();
+
+  String _selectedRole = 'student';
   bool _loading = false;
 
   Future<void> _signUp() async {
@@ -24,17 +28,18 @@ class _SignupPageState extends State<SignupPage> {
         password: _passwordController.text.trim(),
         fullName: _nameController.text.trim(),
         role: _selectedRole,
+        rollNo: _selectedRole == 'student' ? _rollNoController.text.trim() : null,
+        batch: _selectedRole == 'student' ? _batchController.text.trim() : null,
+        course: _selectedRole == 'student' ? _courseController.text.trim() : null,
+        degree: _selectedRole == 'student' ? _degreeController.text.trim() : null,
       );
 
       if (mounted) {
-        // ✅ Show popup dialog after signup
         showDialog(
           context: context,
           barrierDismissible: false,
-          builder: (context) => AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
+          builder: (_) => AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             title: const Row(
               children: [
                 Icon(Icons.mark_email_read, color: Colors.deepPurple),
@@ -49,8 +54,8 @@ class _SignupPageState extends State<SignupPage> {
             actions: [
               TextButton(
                 onPressed: () {
-                  Navigator.pop(context); // close dialog
-                  Navigator.pop(context); // go back to login page
+                  Navigator.pop(context);
+                  Navigator.pop(context);
                 },
                 child: const Text("OK"),
               ),
@@ -60,9 +65,7 @@ class _SignupPageState extends State<SignupPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error: $e")),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
       }
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -73,6 +76,7 @@ class _SignupPageState extends State<SignupPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
+        padding: const EdgeInsets.all(24),
         width: double.infinity,
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -81,102 +85,63 @@ class _SignupPageState extends State<SignupPage> {
             end: Alignment.bottomCenter,
           ),
         ),
-        padding: const EdgeInsets.all(24),
         child: Center(
           child: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // Circle icon
                 Container(
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.white.withOpacity(0.15),
-                  ),
+                  decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white.withOpacity(0.15)),
                   padding: const EdgeInsets.all(30),
-                  child: const Icon(Icons.person_add,
-                      size: 64, color: Colors.white),
+                  child: const Icon(Icons.person_add, size: 64, color: Colors.white),
                 ),
                 const SizedBox(height: 20),
-
-                const Text(
-                  "Create Account",
-                  style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white),
-                ),
+                const Text("Create Account", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white)),
                 const SizedBox(height: 8),
-                const Text(
-                  "Sign up to get started",
-                  style: TextStyle(fontSize: 16, color: Colors.white70),
-                ),
-
+                const Text("Sign up to get started", style: TextStyle(fontSize: 16, color: Colors.white70)),
                 const SizedBox(height: 40),
-                _buildInputField(
-                  controller: _nameController,
-                  hint: "Full Name",
-                  icon: Icons.person,
-                ),
+
+                _buildInputField(_nameController, "Full Name", Icons.person),
                 const SizedBox(height: 16),
-                _buildInputField(
-                  controller: _emailController,
-                  hint: "Email",
-                  icon: Icons.email,
-                  keyboardType: TextInputType.emailAddress,
-                ),
+                _buildInputField(_emailController, "Email", Icons.email, keyboardType: TextInputType.emailAddress),
                 const SizedBox(height: 16),
-                _buildInputField(
-                  controller: _passwordController,
-                  hint: "Password",
-                  icon: Icons.lock,
-                  obscure: true,
-                ),
+                _buildInputField(_passwordController, "Password", Icons.lock, obscure: true),
                 const SizedBox(height: 16),
+
                 DropdownButtonFormField<String>(
                   value: _selectedRole,
                   items: const [
-                    DropdownMenuItem(
-                        value: 'Student',
-                        child: Text('Student',
-                            style: TextStyle(color: Colors.white))),
-                    DropdownMenuItem(
-                        value: 'Issuer',
-                        child: Text('Issuer',
-                            style: TextStyle(color: Colors.white))),
-                    DropdownMenuItem(
-                        value: 'Verifier',
-                        child: Text('Verifier',
-                            style: TextStyle(color: Colors.white))),
+                    DropdownMenuItem(value: 'student', child: Text('Student')),
+                    DropdownMenuItem(value: 'university', child: Text('University')),
+                    DropdownMenuItem(value: 'admin', child: Text('Admin')),
                   ],
                   onChanged: (val) => setState(() => _selectedRole = val!),
                   decoration: _dropdownDecoration(),
-                  dropdownColor: const Color(0xFF6A5AE0),
                 ),
+                const SizedBox(height: 16),
 
-                const SizedBox(height: 24),
+                if (_selectedRole == 'student') ...[
+                  _buildInputField(_rollNoController, "Roll Number", Icons.confirmation_number),
+                  const SizedBox(height: 16),
+                  _buildInputField(_batchController, "Batch", Icons.calendar_today),
+                  const SizedBox(height: 16),
+                  _buildInputField(_courseController, "Course", Icons.book),
+                  const SizedBox(height: 16),
+                  _buildInputField(_degreeController, "Degree", Icons.school),
+                  const SizedBox(height: 16),
+                ],
+
                 _loading
                     ? const CircularProgressIndicator(color: Colors.white)
                     : ElevatedButton(
+                  onPressed: _signUp,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
                     foregroundColor: Colors.deepPurple,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 40, vertical: 14),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30)),
+                    padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                   ),
-                  onPressed: _signUp,
                   child: const Text("Sign Up"),
-                ),
-
-                const SizedBox(height: 16),
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text(
-                    "Already have an account? Login",
-                    style: TextStyle(color: Colors.white70),
-                  ),
                 ),
               ],
             ),
@@ -186,13 +151,8 @@ class _SignupPageState extends State<SignupPage> {
     );
   }
 
-  Widget _buildInputField({
-    required TextEditingController controller,
-    required String hint,
-    required IconData icon,
-    bool obscure = false,
-    TextInputType keyboardType = TextInputType.text,
-  }) {
+  Widget _buildInputField(TextEditingController controller, String hint, IconData icon,
+      {bool obscure = false, TextInputType keyboardType = TextInputType.text}) {
     return TextField(
       controller: controller,
       obscureText: obscure,
@@ -204,10 +164,7 @@ class _SignupPageState extends State<SignupPage> {
         hintStyle: const TextStyle(color: Colors.white70),
         filled: true,
         fillColor: Colors.white.withOpacity(0.2),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(30),
-          borderSide: BorderSide.none,
-        ),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(30), borderSide: BorderSide.none),
       ),
     );
   }
@@ -217,10 +174,7 @@ class _SignupPageState extends State<SignupPage> {
       filled: true,
       fillColor: Colors.white.withOpacity(0.2),
       hintStyle: const TextStyle(color: Colors.white70),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(30),
-        borderSide: BorderSide.none,
-      ),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(30), borderSide: BorderSide.none),
     );
   }
 }

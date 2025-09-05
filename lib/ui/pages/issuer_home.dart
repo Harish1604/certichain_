@@ -17,6 +17,8 @@ class _IssuerHomePageState extends State<IssuerHomePage> {
   bool _uploading = false;
   List<Map<String, dynamic>> _certificates = [];
 
+  final TextEditingController _rollNoController = TextEditingController();
+
   @override
   void initState() {
     super.initState();
@@ -25,7 +27,7 @@ class _IssuerHomePageState extends State<IssuerHomePage> {
 
   Future<void> _loadCertificates() async {
     try {
-      final certs = await SupabaseService.fetchCertificates();
+      final certs = await SupabaseService.fetchAllCertificates();
       setState(() => _certificates = certs);
     } catch (e) {
       debugPrint("Error loading certificates: $e");
@@ -67,6 +69,13 @@ class _IssuerHomePageState extends State<IssuerHomePage> {
   }
 
   Future<void> _uploadCertificate() async {
+    if (_rollNoController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please enter a student roll number.")),
+      );
+      return;
+    }
+
     try {
       setState(() => _uploading = true);
 
@@ -98,6 +107,7 @@ class _IssuerHomePageState extends State<IssuerHomePage> {
         cid: cid,
         hash: hash,
         fileName: fileName,
+        studentRollNo: _rollNoController.text.trim(),
       );
 
       await _loadCertificates();
@@ -144,7 +154,23 @@ class _IssuerHomePageState extends State<IssuerHomePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Quick actions
+            // Roll number input
+            TextField(
+              controller: _rollNoController,
+              decoration: InputDecoration(
+                hintText: "Enter Student Roll Number",
+                hintStyle: const TextStyle(color: Colors.white54),
+                filled: true,
+                fillColor: const Color(0xFF1C1F2E),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              style: const TextStyle(color: Colors.white),
+            ),
+            const SizedBox(height: 12),
+
+            // Upload button
             Row(
               children: [
                 Expanded(
@@ -187,7 +213,8 @@ class _IssuerHomePageState extends State<IssuerHomePage> {
             for (final cert in _certificates)
               _buildCertificateTile(
                 cert['file_name'] ?? "Unknown",
-                "Pending", // TODO: add real status field
+                cert['students']?['full_name'] ?? "Unknown Student",
+                cert['students']?['roll_no'] ?? "N/A",
                 cert['created_at'] ?? "",
               ),
           ],
@@ -196,9 +223,12 @@ class _IssuerHomePageState extends State<IssuerHomePage> {
     );
   }
 
-  static Widget _buildCertificateTile(String name, String status, String date) {
-    Color statusColor = status == "Verified" ? Colors.green : Colors.orangeAccent;
-
+  static Widget _buildCertificateTile(
+      String fileName,
+      String studentName,
+      String rollNo,
+      String date,
+      ) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -208,12 +238,12 @@ class _IssuerHomePageState extends State<IssuerHomePage> {
       child: ListTile(
         leading: const Icon(Icons.picture_as_pdf, color: Colors.purpleAccent),
         title: Text(
-          name,
+          fileName,
           style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         subtitle: Text(
-          "$status • $date",
-          style: TextStyle(color: statusColor, fontSize: 12),
+          "$studentName • Roll: $rollNo\n$date",
+          style: const TextStyle(color: Colors.white70, fontSize: 12),
         ),
         trailing: const Icon(Icons.arrow_forward_ios, color: Colors.white70, size: 16),
       ),
