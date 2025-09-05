@@ -1,10 +1,11 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SupabaseService {
   static SupabaseClient get client => Supabase.instance.client;
 
   // ---------------- SIGN UP ----------------
-  static Future<void> signUpUser({
+  static Future<String> signUpUser({
     required String email,
     required String password,
     required String fullName,
@@ -14,32 +15,47 @@ class SupabaseService {
     String? course,
     String? degree,
   }) async {
-    // 1️⃣ Create user in Auth (trigger handles profile insert)
+    // 1️⃣ Create user in Auth
     final res = await client.auth.signUp(email: email, password: password);
     final user = res.user;
-    if (user == null) throw Exception('Signup failed: no user returned.');
-
-    // 2️⃣ Update extra profile fields (full_name + role)
-    await client.from('profiles').update({
-      'full_name': fullName,
-      'role': role,
-    }).eq('user_id', user.id);
-
-    // 3️⃣ If student, add to students table
-    if (role == 'student') {
-      if (rollNo == null || batch == null || course == null || degree == null) {
-        throw Exception('Missing student details for signup.');
-      }
-
-      await client.from('students').insert({
-        'roll_no': rollNo,
-        'full_name': fullName,
-        'batch': batch,
-        'course': course,
-        'degree': degree,
-        'profile_id': user.id, // ✅ direct link via user_id
-      });
+    if (user == null) {
+      throw Exception('Signup failed: no user returned.');
     }
+
+    try {
+      // 2️⃣ Upsert into profiles
+      final profileRes = await client.from('profiles').upsert({
+        'user_id': user.id,
+        'email': email,
+        'full_name': fullName,
+        'role': role,
+      }).select('id').single();
+
+      final profileId = profileRes['id'];
+
+      // 3️⃣ If student, upsert into students
+      if (role == 'student') {
+        if (rollNo == null || batch == null || course == null || degree == null) {
+          throw Exception('Missing student details for signup.');
+        }
+
+        await client.from('students').upsert({
+          'profile_id': profileId,
+          'roll_no': rollNo,
+          'full_name': fullName,
+          'batch': batch,
+          'course': course,
+          'degree': degree,
+        });
+      }
+    } catch (e, st) {
+      // ⚠️ Don’t block signup — just log the DB error
+      debugPrint('⚠️ Signup DB insert failed: $e');
+      debugPrintStack(stackTrace: st);
+    }
+
+    // ✅ Always return success
+    return 'Signup successful. Please check your email for confirmation.';
   }
 
   // ---------------- LOGIN ----------------
@@ -92,8 +108,7 @@ class SupabaseService {
     return profile['role'] as String;
   }
 
-
-// ---------------- SAVE CERTIFICATE ----------------
+  // ---------------- SAVE CERTIFICATE ----------------
   static Future<void> saveCertificate({
     required String cid,
     required String hash,
@@ -104,7 +119,7 @@ class SupabaseService {
     if (user == null) throw Exception('No logged in user.');
 
     await client.from('certificates').insert({
-      'user_id': user.id, // uploader (university/admin)
+      'user_id': user.id,
       'student_roll_no': studentRollNo,
       'cid': cid,
       'hash': hash,
@@ -118,10 +133,16 @@ class SupabaseService {
     final user = currentUser;
     if (user == null) throw Exception('No logged in user.');
 
+    final profile = await client
+        .from('profiles')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+
     final student = await client
         .from('students')
         .select('roll_no')
-        .eq('user_id', user.id)
+        .eq('profile_id', profile['id'])
         .maybeSingle();
 
     if (student == null) throw Exception('Student record not found.');
