@@ -1,23 +1,22 @@
-// lib/main.dart
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'ui/auth/login_page.dart';
 import 'ui/pages/student_home.dart';
 import 'ui/pages/issuer_home.dart';
 import 'ui/pages/verifier_home.dart';
+import 'services/supabase_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Supabase.initialize(
-    url: 'https://aqbaljsrsuauwllldibu.supabase.co',
+    url: 'https://qxxmajyoxnuhavxgtgmw.supabase.co',
     anonKey:
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFxYmFsanNyc3VhdXdsbGxkaWJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY5MDU3MTcsImV4cCI6MjA3MjQ4MTcxN30.Sgh8t-tLqeWuKjMPl5fjflYl2_6FRTlF2uLYHO9eQzg',
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF4eG1hanlveG51aGF2eGd0Z213Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcxNjg3OTYsImV4cCI6MjA3Mjc0NDc5Nn0.90s1l9PDylLpirQr-es8NFRsBlhf4Ghq1gYFTscOo2U',
   );
 
   runApp(const MyApp());
 }
-
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -37,13 +36,41 @@ class MyApp extends StatelessWidget {
         '/student': (_) => const StudentHomePage(),
         '/issuer': (_) => const IssuerHomePage(),
         '/verifier': (_) => const VerifierHomePage(),
+        '/login': (_) => const LoginPage(),
       },
     );
   }
 }
 
-class SplashScreen extends StatelessWidget {
+class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
+
+  @override
+  State<SplashScreen> createState() => _SplashScreenState();
+}
+
+class _SplashScreenState extends State<SplashScreen> {
+  @override
+  void initState() {
+    super.initState();
+    _checkLogin();
+  }
+
+  void _checkLogin() async {
+    await Future.delayed(const Duration(seconds: 2)); // splash delay
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user != null) {
+      final profile = await SupabaseService.getProfile();
+      final role = profile?['role'] ?? 'student';
+      if (role == 'issuer') {
+        Navigator.pushReplacementNamed(context, '/issuer');
+      } else if (role == 'verifier') {
+        Navigator.pushReplacementNamed(context, '/verifier');
+      } else {
+        Navigator.pushReplacementNamed(context, '/student');
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -58,8 +85,7 @@ class SplashScreen extends StatelessWidget {
           ),
         ),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center, // centers vertically
-          crossAxisAlignment: CrossAxisAlignment.center, // centers horizontally
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             // Logo circle
             Container(
@@ -75,7 +101,6 @@ class SplashScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 20),
-
             const Text(
               "CertiChain",
               style: TextStyle(
@@ -89,7 +114,6 @@ class SplashScreen extends StatelessWidget {
               "Blockchain Verified Certificates",
               style: TextStyle(fontSize: 16, color: Colors.white70),
             ),
-
             const SizedBox(height: 40),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
@@ -104,15 +128,11 @@ class SplashScreen extends StatelessWidget {
                 ),
               ),
               onPressed: () {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (_) => const LoginPage()),
-                );
+                Navigator.pushReplacementNamed(context, '/login');
               },
               child: const Text("Get Started"),
             ),
-
-            const SizedBox(height: 40), // small gap before version text
+            const SizedBox(height: 40),
             const Text(
               "Version 1.0.0",
               style: TextStyle(color: Colors.white54, fontSize: 12),
@@ -123,4 +143,3 @@ class SplashScreen extends StatelessWidget {
     );
   }
 }
-
