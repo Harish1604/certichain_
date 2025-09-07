@@ -16,8 +16,11 @@ class IssuerHomePage extends StatefulWidget {
 class _IssuerHomePageState extends State<IssuerHomePage> {
   bool _uploading = false;
   List<Map<String, dynamic>> _certificates = [];
-
   final TextEditingController _rollNoController = TextEditingController();
+  final TextEditingController _walletController = TextEditingController();
+
+  String? _walletAddress;
+  String _issuerName = "Issuer";
 
   @override
   void initState() {
@@ -31,6 +34,94 @@ class _IssuerHomePageState extends State<IssuerHomePage> {
       setState(() => _certificates = certs);
     } catch (e) {
       debugPrint("Error loading certificates: $e");
+    }
+  }
+
+  bool _isValidEthAddress(String address) {
+    final regex = RegExp(r'^0x[a-fA-F0-9]{40}$');
+    return regex.hasMatch(address);
+  }
+
+  Future<void> _connectWalletManually() async {
+    final input = _walletController.text.trim();
+    if (!_isValidEthAddress(input)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Invalid wallet address!")),
+      );
+      return;
+    }
+
+    final profile = await SupabaseService.getProfile();
+    setState(() {
+      _walletAddress = input; // user-entered wallet
+      _issuerName = profile?['full_name'] ?? "Issuer"; // get name from Supabase
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Wallet address saved!")),
+    );
+  }
+
+  Future<void> _uploadCertificate() async {
+    if (_walletAddress == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Enter your wallet address first!")),
+      );
+      return;
+    }
+
+    if (_rollNoController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please enter a student roll number.")),
+      );
+      return;
+    }
+
+    try {
+      setState(() => _uploading = true);
+
+      final result = await FilePicker.platform.pickFiles();
+      if (result == null) return;
+
+      final pickedFile = result.files.single;
+      Uint8List fileBytes;
+
+      if (pickedFile.bytes != null) {
+        fileBytes = pickedFile.bytes!;
+      } else if (pickedFile.path != null) {
+        fileBytes = await File(pickedFile.path!).readAsBytes();
+      } else {
+        throw Exception("No file data found");
+      }
+
+      final fileName = pickedFile.name;
+      final hash = PinataService.generateHash(fileBytes);
+      final cid = await PinataService.uploadFile(fileBytes, fileName);
+
+      await SupabaseService.saveCertificate(
+        cid: cid,
+        hash: hash,
+        fileName: fileName,
+        studentRollNo: _rollNoController.text.trim(),
+      );
+
+      await _loadCertificates();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text(
+                  "Certificate uploaded ✅ (Wallet: $_walletAddress)")),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Upload failed: $e")),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _uploading = false);
     }
   }
 
@@ -68,66 +159,6 @@ class _IssuerHomePageState extends State<IssuerHomePage> {
     );
   }
 
-  Future<void> _uploadCertificate() async {
-    if (_rollNoController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please enter a student roll number.")),
-      );
-      return;
-    }
-
-    try {
-      setState(() => _uploading = true);
-
-      // pick file
-      final result = await FilePicker.platform.pickFiles();
-      if (result == null) return;
-
-      final pickedFile = result.files.single;
-      Uint8List fileBytes;
-
-      if (pickedFile.bytes != null) {
-        fileBytes = pickedFile.bytes!;
-      } else if (pickedFile.path != null) {
-        fileBytes = await File(pickedFile.path!).readAsBytes();
-      } else {
-        throw Exception("No file data found");
-      }
-
-      final fileName = pickedFile.name;
-
-      // generate hash
-      final hash = PinataService.generateHash(fileBytes);
-
-      // upload to pinata
-      final cid = await PinataService.uploadFile(fileBytes, fileName);
-
-      // save to supabase
-      await SupabaseService.saveCertificate(
-        cid: cid,
-        hash: hash,
-        fileName: fileName,
-        studentRollNo: _rollNoController.text.trim(),
-      );
-
-      await _loadCertificates();
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Certificate uploaded successfully!")),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Upload failed: $e")),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _uploading = false);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -154,6 +185,77 @@ class _IssuerHomePageState extends State<IssuerHomePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Manual Wallet Input
+            if (_walletAddress == null) ...[
+              TextField(
+                controller: _walletController,
+                decoration: InputDecoration(
+                  hintText: "Enter your wallet address",
+                  hintStyle: const TextStyle(color: Colors.white54),
+                  filled: true,
+                  fillColor: const Color(0xFF1C1F2E),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                style: const TextStyle(color: Colors.white),
+              ),
+              const SizedBox(height: 8),
+              ElevatedButton(
+                onPressed: _connectWalletManually,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text(
+                  "Save Wallet",
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+            ] else
+              Card(
+                color: const Color(0xFF1C1F2E),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text("Issuer: $_issuerName",
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 8),
+                          Text(
+                            "Wallet: ${_walletAddress!.substring(0, 6)}...${_walletAddress!.substring(_walletAddress!.length - 4)}",
+                            style: const TextStyle(
+                                color: Colors.white70, fontSize: 14),
+                          ),
+                        ],
+                      ),
+                      IconButton(
+                        onPressed: () {
+                          setState(() {
+                            _walletAddress = null;
+                            _walletController.clear();
+                          });
+                        },
+                        icon: const Icon(Icons.logout, color: Colors.red),
+                      )
+                    ],
+                  ),
+                ),
+              ),
+            const SizedBox(height: 20),
+
             // Roll number input
             TextField(
               controller: _rollNoController,
@@ -200,7 +302,6 @@ class _IssuerHomePageState extends State<IssuerHomePage> {
             ),
             const SizedBox(height: 24),
 
-            // Certificates list
             const Text(
               "Recent Certificates",
               style: TextStyle(
@@ -239,13 +340,15 @@ class _IssuerHomePageState extends State<IssuerHomePage> {
         leading: const Icon(Icons.picture_as_pdf, color: Colors.purpleAccent),
         title: Text(
           fileName,
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          style: const TextStyle(
+              color: Colors.white, fontWeight: FontWeight.bold),
         ),
         subtitle: Text(
           "$studentName • Roll: $rollNo\n$date",
           style: const TextStyle(color: Colors.white70, fontSize: 12),
         ),
-        trailing: const Icon(Icons.arrow_forward_ios, color: Colors.white70, size: 16),
+        trailing: const Icon(Icons.arrow_forward_ios,
+            color: Colors.white70, size: 16),
       ),
     );
   }
