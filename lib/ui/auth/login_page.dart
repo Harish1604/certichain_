@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../services/supabase_service.dart';
-import '../pages/issuer_home.dart';
+import '../pages/issuer/issuer_home.dart';
+import '../pages/issuer/issuer_main.dart';
 import '../pages/student_home.dart';
 import '../pages/verifier_home.dart';
 import 'signup_page.dart';
@@ -49,7 +50,7 @@ class _LoginPageState extends State<LoginPage> {
   void _navigateToHome(String role) {
     Widget home;
     if (role == 'issuer') {
-      home = const IssuerHomePage();
+      home = const IssuerMainPage();
     } else if (role == 'verifier') {
       home = const VerifierHomePage();
     } else {

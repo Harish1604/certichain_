@@ -1,8 +1,9 @@
+import 'package:certichain/ui/pages/issuer/issuer_main.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'ui/auth/login_page.dart';
 import 'ui/pages/student_home.dart';
-import 'ui/pages/issuer_home.dart';
+import 'ui/pages/issuer/issuer_home.dart';
 import 'ui/pages/verifier_home.dart';
 import 'services/supabase_service.dart';
 
@@ -34,7 +35,7 @@ class MyApp extends StatelessWidget {
       home: const SplashScreen(),
       routes: {
         '/student': (_) => const StudentHomePage(),
-        '/issuer': (_) => const IssuerHomePage(),
+        '/issuer': (_) => const IssuerMainPage(),
         '/verifier': (_) => const VerifierHomePage(),
         '/login': (_) => const LoginPage(),
       },

@@ -4,20 +4,19 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:certichain/services/ipfs_service.dart';
 import 'package:certichain/services/supabase_service.dart';
-import 'package:certichain/ui/auth/login_page.dart';
 import 'package:solana/solana.dart';
-import 'package:bs58/bs58.dart'; // base58
+import 'package:bs58/bs58.dart';
 
-class IssuerHomePage extends StatefulWidget {
-  const IssuerHomePage({super.key});
+
+class UploadPage extends StatefulWidget {
+  const UploadPage({super.key});
 
   @override
-  State<IssuerHomePage> createState() => _IssuerHomePageState();
+  State<UploadPage> createState() => _UploadPageState();
 }
 
-class _IssuerHomePageState extends State<IssuerHomePage> {
+class _UploadPageState extends State<UploadPage> {
   bool _uploading = false;
-  List<Map<String, dynamic>> _certificates = [];
   final TextEditingController _rollNoController = TextEditingController();
   final TextEditingController _walletController = TextEditingController();
   final TextEditingController _privateKeyController = TextEditingController();
@@ -25,21 +24,8 @@ class _IssuerHomePageState extends State<IssuerHomePage> {
 
   String? _walletAddress;
   String _issuerName = "Issuer";
-
-  @override
-  void initState() {
-    super.initState();
-    _loadCertificates();
-  }
-
-  Future<void> _loadCertificates() async {
-    try {
-      final certs = await SupabaseService.fetchAllCertificates();
-      setState(() => _certificates = certs);
-    } catch (e) {
-      debugPrint("Error loading certificates: $e");
-    }
-  }
+  int? _walletBalanceLamports;
+  int? _gasFeeLamports;
 
   bool _isValidSolanaAddress(String address) {
     try {
@@ -65,9 +51,31 @@ class _IssuerHomePageState extends State<IssuerHomePage> {
       _issuerName = profile?['full_name'] ?? "Issuer";
     });
 
+    await _fetchWalletBalance();
+
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("Wallet address saved!")),
     );
+  }
+
+  Future<void> _fetchWalletBalance() async {
+    if (_walletAddress == null) return;
+
+    try {
+      final client = SolanaClient(
+        rpcUrl: Uri.parse("https://api.devnet.solana.com"),
+        websocketUrl: Uri.parse("wss://api.devnet.solana.com"),
+      );
+
+      final balanceResult = await client.rpcClient.getBalance(_walletAddress!);
+      setState(() {
+        _walletBalanceLamports = balanceResult.value;
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Failed to fetch balance: $e")),
+      );
+    }
   }
 
   Future<void> _uploadCertificate() async {
@@ -114,7 +122,6 @@ class _IssuerHomePageState extends State<IssuerHomePage> {
       final hash = PinataService.generateHash(fileBytes);
       final cid = await PinataService.uploadFile(fileBytes, fileName);
 
-      // Save in Supabase
       await SupabaseService.saveCertificateAndReturnRow(
         cid: cid,
         hash: hash,
@@ -122,7 +129,6 @@ class _IssuerHomePageState extends State<IssuerHomePage> {
         studentRollNo: _rollNoController.text.trim(),
       );
 
-      // --- Solana Transaction ---
       final client = SolanaClient(
         rpcUrl: Uri.parse("https://api.devnet.solana.com"),
         websocketUrl: Uri.parse("wss://api.devnet.solana.com"),
@@ -131,14 +137,14 @@ class _IssuerHomePageState extends State<IssuerHomePage> {
       Ed25519HDKeyPair issuerKeypair;
 
       if (_mnemonicController.text.trim().isNotEmpty) {
-        // From mnemonic
         issuerKeypair =
         await Ed25519HDKeyPair.fromMnemonic(_mnemonicController.text.trim());
       } else {
-        // From secret key (handle 32-byte requirement)
         final secretKey = base58.decode(_privateKeyController.text.trim());
-        final seed = secretKey.length > 32 ? secretKey.sublist(0, 32) : secretKey;
-        issuerKeypair = await Ed25519HDKeyPair.fromPrivateKeyBytes(privateKey: seed);
+        final seed =
+        secretKey.length > 32 ? secretKey.sublist(0, 32) : secretKey;
+        issuerKeypair =
+        await Ed25519HDKeyPair.fromPrivateKeyBytes(privateKey: seed);
       }
 
       final message = Message(
@@ -159,7 +165,6 @@ class _IssuerHomePageState extends State<IssuerHomePage> {
       final slot = txData?.slot ?? 0;
       final fee = txData?.meta?.fee ?? 0;
 
-      // Attach on-chain info in Supabase
       await SupabaseService.attachOnChainInfo(
         cid: cid,
         txSignature: txSig,
@@ -168,7 +173,9 @@ class _IssuerHomePageState extends State<IssuerHomePage> {
         network: "devnet",
       );
 
-      await _loadCertificates();
+      setState(() {
+        _gasFeeLamports = fee;
+      });
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -186,40 +193,6 @@ class _IssuerHomePageState extends State<IssuerHomePage> {
     }
   }
 
-  void _showLogoutSheet(BuildContext context) {
-    showModalBottomSheet(
-      backgroundColor: const Color(0xFF1C1F2E),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      context: context,
-      builder: (ctx) {
-        return Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: const Icon(Icons.logout, color: Colors.red),
-                title: const Text(
-                  "Logout",
-                  style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
-                ),
-                onTap: () async {
-                  await SupabaseService.signOut();
-                  Navigator.of(context).pushAndRemoveUntil(
-                    MaterialPageRoute(builder: (_) => const LoginPage()),
-                        (route) => false,
-                  );
-                },
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -228,66 +201,35 @@ class _IssuerHomePageState extends State<IssuerHomePage> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: const Text(
-          "CertiChain",
+          "Upload Certificate",
           style: TextStyle(
             fontWeight: FontWeight.bold,
             color: Colors.white,
           ),
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.account_circle, color: Colors.white),
-            onPressed: () => _showLogoutSheet(context),
-          ),
-        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Manual Wallet Input
             if (_walletAddress == null) ...[
               TextField(
                 controller: _walletController,
-                decoration: InputDecoration(
-                  hintText: "Enter your Solana wallet address",
-                  hintStyle: const TextStyle(color: Colors.white54),
-                  filled: true,
-                  fillColor: const Color(0xFF1C1F2E),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
+                decoration: _inputDecoration("Enter your Solana wallet address"),
                 style: const TextStyle(color: Colors.white),
               ),
               const SizedBox(height: 8),
               TextField(
                 controller: _privateKeyController,
-                decoration: InputDecoration(
-                  hintText: "Enter your private key (base58)",
-                  hintStyle: const TextStyle(color: Colors.white54),
-                  filled: true,
-                  fillColor: const Color(0xFF1C1F2E),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
+                decoration: _inputDecoration("Enter your private key (base58)"),
                 style: const TextStyle(color: Colors.white),
                 obscureText: true,
               ),
               const SizedBox(height: 8),
               TextField(
                 controller: _mnemonicController,
-                decoration: InputDecoration(
-                  hintText: "Or enter your mnemonic",
-                  hintStyle: const TextStyle(color: Colors.white54),
-                  filled: true,
-                  fillColor: const Color(0xFF1C1F2E),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
+                decoration: _inputDecoration("Or enter your mnemonic"),
                 style: const TextStyle(color: Colors.white),
               ),
               const SizedBox(height: 8),
@@ -301,7 +243,7 @@ class _IssuerHomePageState extends State<IssuerHomePage> {
                   ),
                 ),
                 child: const Text(
-                  "Save Wallet",
+                  "   Save Wallet   ",
                   style: TextStyle(color: Colors.white),
                 ),
               ),
@@ -329,6 +271,18 @@ class _IssuerHomePageState extends State<IssuerHomePage> {
                             style: const TextStyle(
                                 color: Colors.white70, fontSize: 14),
                           ),
+                          if (_walletBalanceLamports != null)
+                            Text(
+                              "Balance: ${_walletBalanceLamports! / 1e9} SOL",
+                              style: const TextStyle(
+                                  color: Colors.white70, fontSize: 14),
+                            ),
+                          if (_gasFeeLamports != null)
+                            Text(
+                              "Gas Fee: ${_gasFeeLamports! / 1e9} SOL",
+                              style: const TextStyle(
+                                  color: Colors.white70, fontSize: 14),
+                            ),
                         ],
                       ),
                       IconButton(
@@ -347,24 +301,12 @@ class _IssuerHomePageState extends State<IssuerHomePage> {
                 ),
               ),
             const SizedBox(height: 20),
-
-            // Roll number input
             TextField(
               controller: _rollNoController,
-              decoration: InputDecoration(
-                hintText: "Enter Student Roll Number",
-                hintStyle: const TextStyle(color: Colors.white54),
-                filled: true,
-                fillColor: const Color(0xFF1C1F2E),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
+              decoration: _inputDecoration("Enter Student Roll Number"),
               style: const TextStyle(color: Colors.white),
             ),
             const SizedBox(height: 12),
-
-            // Upload button
             Row(
               children: [
                 Expanded(
@@ -392,55 +334,20 @@ class _IssuerHomePageState extends State<IssuerHomePage> {
                 ),
               ],
             ),
-            const SizedBox(height: 24),
-
-            const Text(
-              "Recent Certificates",
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 18,
-                color: Colors.white,
-              ),
-            ),
-            const SizedBox(height: 12),
-            for (final cert in _certificates)
-              _buildCertificateTile(
-                cert['file_name'] ?? "Unknown",
-                cert['students']?['full_name'] ?? "Unknown Student",
-                cert['students']?['roll_no'] ?? "N/A",
-                cert['created_at'] ?? "",
-              ),
           ],
         ),
       ),
     );
   }
 
-  static Widget _buildCertificateTile(
-      String fileName,
-      String studentName,
-      String rollNo,
-      String date,
-      ) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1C1F2E),
+  InputDecoration _inputDecoration(String hint) {
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: const TextStyle(color: Colors.white54),
+      filled: true,
+      fillColor: const Color(0xFF1C1F2E),
+      border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-      ),
-      child: ListTile(
-        leading: const Icon(Icons.picture_as_pdf, color: Colors.purpleAccent),
-        title: Text(
-          fileName,
-          style: const TextStyle(
-              color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        subtitle: Text(
-          "$studentName • Roll: $rollNo\n$date",
-          style: const TextStyle(color: Colors.white70, fontSize: 12),
-        ),
-        trailing: const Icon(Icons.arrow_forward_ios,
-            color: Colors.white70, size: 16),
       ),
     );
   }
