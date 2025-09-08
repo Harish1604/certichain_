@@ -48,8 +48,8 @@ class SupabaseService {
     return profile;
   }
 
-  // ---------------- SAVE CERTIFICATE ----------------
-  static Future<void> saveCertificate({
+  // ---------------- SAVE CERTIFICATE & RETURN ROW ----------------
+  static Future<Map<String, dynamic>> saveCertificateAndReturnRow({
     required String cid,
     required String hash,
     required String fileName,
@@ -64,19 +64,52 @@ class SupabaseService {
 
     if (student == null) throw Exception("No student found with roll number $studentRollNo");
 
-    await client.from('certificates').insert({
+    final response = await client.from('certificates').insert({
       'student_id': student['id'],
       'file_name': fileName,
       'cid': cid,
       'hash': hash,
-    });
+    }).select().maybeSingle();
+
+    if (response == null) {
+      throw Exception("Failed to insert certificate row.");
+    }
+
+    return Map<String, dynamic>.from(response);
+  }
+
+  // ---------------- ATTACH ON-CHAIN INFO ----------------
+  static Future<void> attachOnChainInfo({
+    required String cid,
+    required String txSignature,
+    required int txSlot,
+    required int feeLamports,
+    required String network, // 'devnet' | 'mainnet'
+  }) async {
+    final cert = await client
+        .from('certificates')
+        .select('id')
+        .eq('cid', cid)
+        .maybeSingle();
+
+    if (cert == null) throw Exception('Certificate not found for CID $cid');
+
+    await client.from('certificates').update({
+      'tx_signature': txSignature,
+      'tx_slot': txSlot,
+      'fee_lamports': feeLamports,
+      'network': network,
+      'explorer_url': 'https://explorer.solana.com/tx/$txSignature?cluster=$network',
+    }).eq('id', cert['id']);
   }
 
   // ---------------- FETCH CERTIFICATES ----------------
   static Future<List<Map<String, dynamic>>> fetchAllCertificates() async {
     final data = await client
         .from('certificates')
-        .select('file_name, cid, hash, created_at, student_id, profiles(full_name, roll_no)')
+        .select(
+      'file_name, cid, hash, created_at, tx_signature, tx_slot, fee_lamports, network, explorer_url, student_id, profiles(full_name, roll_no)',
+    )
         .order('created_at', ascending: false);
 
     return List<Map<String, dynamic>>.from(data);

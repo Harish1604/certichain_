@@ -5,6 +5,8 @@ import 'package:file_picker/file_picker.dart';
 import 'package:certichain/services/ipfs_service.dart';
 import 'package:certichain/services/supabase_service.dart';
 import 'package:certichain/ui/auth/login_page.dart';
+import 'package:solana/solana.dart';
+import 'package:bs58/bs58.dart'; // base58
 
 class IssuerHomePage extends StatefulWidget {
   const IssuerHomePage({super.key});
@@ -18,6 +20,8 @@ class _IssuerHomePageState extends State<IssuerHomePage> {
   List<Map<String, dynamic>> _certificates = [];
   final TextEditingController _rollNoController = TextEditingController();
   final TextEditingController _walletController = TextEditingController();
+  final TextEditingController _privateKeyController = TextEditingController();
+  final TextEditingController _mnemonicController = TextEditingController();
 
   String? _walletAddress;
   String _issuerName = "Issuer";
@@ -37,24 +41,28 @@ class _IssuerHomePageState extends State<IssuerHomePage> {
     }
   }
 
-  bool _isValidEthAddress(String address) {
-    final regex = RegExp(r'^0x[a-fA-F0-9]{40}$');
-    return regex.hasMatch(address);
+  bool _isValidSolanaAddress(String address) {
+    try {
+      final pubKey = Ed25519HDPublicKey.fromBase58(address);
+      return pubKey.bytes.isNotEmpty;
+    } catch (_) {
+      return false;
+    }
   }
 
   Future<void> _connectWalletManually() async {
     final input = _walletController.text.trim();
-    if (!_isValidEthAddress(input)) {
+    if (!_isValidSolanaAddress(input)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Invalid wallet address!")),
+        const SnackBar(content: Text("Invalid Solana wallet address!")),
       );
       return;
     }
 
     final profile = await SupabaseService.getProfile();
     setState(() {
-      _walletAddress = input; // user-entered wallet
-      _issuerName = profile?['full_name'] ?? "Issuer"; // get name from Supabase
+      _walletAddress = input;
+      _issuerName = profile?['full_name'] ?? "Issuer";
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -73,6 +81,14 @@ class _IssuerHomePageState extends State<IssuerHomePage> {
     if (_rollNoController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Please enter a student roll number.")),
+      );
+      return;
+    }
+
+    if (_privateKeyController.text.trim().isEmpty &&
+        _mnemonicController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Enter your private key or mnemonic!")),
       );
       return;
     }
@@ -98,20 +114,65 @@ class _IssuerHomePageState extends State<IssuerHomePage> {
       final hash = PinataService.generateHash(fileBytes);
       final cid = await PinataService.uploadFile(fileBytes, fileName);
 
-      await SupabaseService.saveCertificate(
+      // Save in Supabase
+      await SupabaseService.saveCertificateAndReturnRow(
         cid: cid,
         hash: hash,
         fileName: fileName,
         studentRollNo: _rollNoController.text.trim(),
       );
 
+      // --- Solana Transaction ---
+      final client = SolanaClient(
+        rpcUrl: Uri.parse("https://api.devnet.solana.com"),
+        websocketUrl: Uri.parse("wss://api.devnet.solana.com"),
+      );
+
+      Ed25519HDKeyPair issuerKeypair;
+
+      if (_mnemonicController.text.trim().isNotEmpty) {
+        // From mnemonic
+        issuerKeypair =
+        await Ed25519HDKeyPair.fromMnemonic(_mnemonicController.text.trim());
+      } else {
+        // From secret key (handle 32-byte requirement)
+        final secretKey = base58.decode(_privateKeyController.text.trim());
+        final seed = secretKey.length > 32 ? secretKey.sublist(0, 32) : secretKey;
+        issuerKeypair = await Ed25519HDKeyPair.fromPrivateKeyBytes(privateKey: seed);
+      }
+
+      final message = Message(
+        instructions: [
+          MemoInstruction(
+            memo: "CID: $cid",
+            signers: [issuerKeypair.publicKey],
+          ),
+        ],
+      );
+
+      final txSig = await client.rpcClient.signAndSendTransaction(
+        message,
+        [issuerKeypair],
+      );
+
+      final txData = await client.rpcClient.getTransaction(txSig);
+      final slot = txData?.slot ?? 0;
+      final fee = txData?.meta?.fee ?? 0;
+
+      // Attach on-chain info in Supabase
+      await SupabaseService.attachOnChainInfo(
+        cid: cid,
+        txSignature: txSig,
+        txSlot: slot,
+        feeLamports: fee,
+        network: "devnet",
+      );
+
       await _loadCertificates();
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text(
-                  "Certificate uploaded ✅ (Wallet: $_walletAddress)")),
+          SnackBar(content: Text("Certificate uploaded ✅ (Tx: $txSig)")),
         );
       }
     } catch (e) {
@@ -190,7 +251,36 @@ class _IssuerHomePageState extends State<IssuerHomePage> {
               TextField(
                 controller: _walletController,
                 decoration: InputDecoration(
-                  hintText: "Enter your wallet address",
+                  hintText: "Enter your Solana wallet address",
+                  hintStyle: const TextStyle(color: Colors.white54),
+                  filled: true,
+                  fillColor: const Color(0xFF1C1F2E),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                style: const TextStyle(color: Colors.white),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _privateKeyController,
+                decoration: InputDecoration(
+                  hintText: "Enter your private key (base58)",
+                  hintStyle: const TextStyle(color: Colors.white54),
+                  filled: true,
+                  fillColor: const Color(0xFF1C1F2E),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                style: const TextStyle(color: Colors.white),
+                obscureText: true,
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _mnemonicController,
+                decoration: InputDecoration(
+                  hintText: "Or enter your mnemonic",
                   hintStyle: const TextStyle(color: Colors.white54),
                   filled: true,
                   fillColor: const Color(0xFF1C1F2E),
@@ -246,6 +336,8 @@ class _IssuerHomePageState extends State<IssuerHomePage> {
                           setState(() {
                             _walletAddress = null;
                             _walletController.clear();
+                            _privateKeyController.clear();
+                            _mnemonicController.clear();
                           });
                         },
                         icon: const Icon(Icons.logout, color: Colors.red),
