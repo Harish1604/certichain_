@@ -68,7 +68,7 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   void _checkLogin() async {
-    await Future.delayed(const Duration(seconds: 2)); // splash delay
+    await Future.delayed(const Duration(seconds: 2));
     final user = Supabase.instance.client.auth.currentUser;
     if (user != null) {
       final profile = await SupabaseService.getProfile();
