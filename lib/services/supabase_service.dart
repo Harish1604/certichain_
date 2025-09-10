@@ -138,6 +138,7 @@ class SupabaseService {
     return unique.values.toList();
   }
 
+
   static Future<List<Map<String, dynamic>>> fetchCertificatesByRollNo(String rollNo) async {
     // 1. Find student id from rollNo
     final student = await client
