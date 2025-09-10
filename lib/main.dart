@@ -1,9 +1,11 @@
-import 'package:certichain/ui/pages/issuer/issuer_main.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:provider/provider.dart';
+import 'providers/wallet_provider.dart'; // <-- make sure import path is right
+
 import 'ui/auth/login_page.dart';
-import 'ui/pages/student_home.dart';
-import 'ui/pages/issuer/issuer_home.dart';
+import 'ui/pages/student/student_home.dart';
+import 'ui/pages/issuer/issuer_main.dart';
 import 'ui/pages/verifier_home.dart';
 import 'services/supabase_service.dart';
 
@@ -16,7 +18,14 @@ void main() async {
     'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF4eG1hanlveG51aGF2eGd0Z213Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcxNjg3OTYsImV4cCI6MjA3Mjc0NDc5Nn0.90s1l9PDylLpirQr-es8NFRsBlhf4Ghq1gYFTscOo2U',
   );
 
-  runApp(const MyApp());
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => WalletProvider()),
+      ],
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -42,6 +51,7 @@ class MyApp extends StatelessWidget {
     );
   }
 }
+
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});

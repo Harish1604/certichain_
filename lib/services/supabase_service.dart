@@ -107,16 +107,80 @@ class SupabaseService {
   static Future<List<Map<String, dynamic>>> fetchAllCertificates() async {
     final data = await client
         .from('certificates')
-        .select(
-      'file_name, cid, hash, created_at, tx_signature, tx_slot, fee_lamports, network, explorer_url, student_id, profiles(full_name, roll_no)',
-    )
+        .select('file_name, cid, hash, created_at, student:profiles(full_name, roll_no)')
         .order('created_at', ascending: false);
 
     return List<Map<String, dynamic>>.from(data);
   }
 
+
   // ---------------- SIGN OUT ----------------
   static Future<void> signOut() async {
     await client.auth.signOut();
   }
+
+
+  // Fetch unique students who have certificates
+  static Future<List<Map<String, dynamic>>> fetchStudentsWithCertificates() async {
+    final data = await client
+        .from('certificates')
+        .select('student:profiles(roll_no, full_name)')
+        .order('created_at', ascending: false);
+
+    // Deduplicate by roll_no
+    final unique = <String, Map<String, dynamic>>{};
+    for (var cert in data) {
+      final student = cert['student'];
+      if (student != null && !unique.containsKey(student['roll_no'])) {
+        unique[student['roll_no']] = student;
+      }
+    }
+    return unique.values.toList();
+  }
+
+  static Future<List<Map<String, dynamic>>> fetchCertificatesByRollNo(String rollNo) async {
+    // 1. Find student id from rollNo
+    final student = await client
+        .from('profiles')
+        .select('id, full_name, roll_no')
+        .eq('roll_no', rollNo)
+        .eq('role', 'student')
+        .maybeSingle();
+
+    if (student == null) return [];
+
+    // 2. Now fetch only that student’s certificates
+    final data = await client
+        .from('certificates')
+        .select('file_name, cid, hash, created_at, tx_signature, student:profiles(full_name, roll_no)')
+        .eq('student_id', student['id']) // ✅ filter by FK
+        .order('created_at', ascending: false);
+
+    return List<Map<String, dynamic>>.from(data);
+  }
+
+
+  // ---------------- FETCH CERTIFICATES FOR A SPECIFIC STUDENT ----------------
+  static Future<List<Map<String, dynamic>>> fetchCertificatesByRoll(String rollNo) async {
+    // 1. Find student ID
+    final student = await client
+        .from('profiles')
+        .select('id')
+        .eq('roll_no', rollNo)
+        .maybeSingle();
+
+    if (student == null) return [];
+
+    // 2. Fetch certs only for that student
+    final data = await client
+        .from('certificates')
+        .select('file_name, cid, hash, created_at, tx_signature, student:profiles(full_name, roll_no)')
+        .eq('student_id', student['id']) // ✅ filter by student_id (FK)
+        .order('created_at', ascending: false);
+
+    return List<Map<String, dynamic>>.from(data);
+  }
+
 }
+
+

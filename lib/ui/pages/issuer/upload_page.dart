@@ -7,7 +7,6 @@ import 'package:certichain/services/supabase_service.dart';
 import 'package:solana/solana.dart';
 import 'package:bs58/bs58.dart';
 
-
 class UploadPage extends StatefulWidget {
   const UploadPage({super.key});
 
@@ -53,9 +52,9 @@ class _UploadPageState extends State<UploadPage> {
 
     await _fetchWalletBalance();
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Wallet address saved!")),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text("Wallet address saved!")));
   }
 
   Future<void> _fetchWalletBalance() async {
@@ -72,9 +71,9 @@ class _UploadPageState extends State<UploadPage> {
         _walletBalanceLamports = balanceResult.value;
       });
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Failed to fetch balance: $e")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Failed to fetch balance: $e")));
     }
   }
 
@@ -137,14 +136,16 @@ class _UploadPageState extends State<UploadPage> {
       Ed25519HDKeyPair issuerKeypair;
 
       if (_mnemonicController.text.trim().isNotEmpty) {
-        issuerKeypair =
-        await Ed25519HDKeyPair.fromMnemonic(_mnemonicController.text.trim());
+        issuerKeypair = await Ed25519HDKeyPair.fromMnemonic(
+          _mnemonicController.text.trim(),
+        );
       } else {
         final secretKey = base58.decode(_privateKeyController.text.trim());
         final seed =
-        secretKey.length > 32 ? secretKey.sublist(0, 32) : secretKey;
-        issuerKeypair =
-        await Ed25519HDKeyPair.fromPrivateKeyBytes(privateKey: seed);
+            secretKey.length > 32 ? secretKey.sublist(0, 32) : secretKey;
+        issuerKeypair = await Ed25519HDKeyPair.fromPrivateKeyBytes(
+          privateKey: seed,
+        );
       }
 
       final message = Message(
@@ -156,10 +157,9 @@ class _UploadPageState extends State<UploadPage> {
         ],
       );
 
-      final txSig = await client.rpcClient.signAndSendTransaction(
-        message,
-        [issuerKeypair],
-      );
+      final txSig = await client.rpcClient.signAndSendTransaction(message, [
+        issuerKeypair,
+      ]);
 
       final txData = await client.rpcClient.getTransaction(txSig);
       final slot = txData?.slot ?? 0;
@@ -184,9 +184,9 @@ class _UploadPageState extends State<UploadPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Upload failed: $e")),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Upload failed: $e")));
       }
     } finally {
       if (mounted) setState(() => _uploading = false);
@@ -202,56 +202,79 @@ class _UploadPageState extends State<UploadPage> {
         elevation: 0,
         title: const Text(
           "Upload Certificate",
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
         ),
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (_walletAddress == null) ...[
-              TextField(
-                controller: _walletController,
-                decoration: _inputDecoration("Enter your Solana wallet address"),
-                style: const TextStyle(color: Colors.white),
+            // Wallet Section
+            Text(
+              "Wallet Details",
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
               ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _privateKeyController,
-                decoration: _inputDecoration("Enter your private key (base58)"),
-                style: const TextStyle(color: Colors.white),
-                obscureText: true,
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _mnemonicController,
-                decoration: _inputDecoration("Or enter your mnemonic"),
-                style: const TextStyle(color: Colors.white),
-              ),
-              const SizedBox(height: 8),
-              ElevatedButton(
-                onPressed: _connectWalletManually,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: const Text(
-                  "   Save Wallet   ",
-                  style: TextStyle(color: Colors.white),
-                ),
-              ),
-            ] else
+            ),
+            const SizedBox(height: 12),
+
+            if (_walletAddress == null)
               Card(
                 color: const Color(0xFF1C1F2E),
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      TextField(
+                        controller: _walletController,
+                        decoration: _inputDecoration("Solana Wallet Address"),
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _privateKeyController,
+                        decoration: _inputDecoration("Private Key (base58)"),
+                        style: const TextStyle(color: Colors.white),
+                        obscureText: true,
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _mnemonicController,
+                        decoration: _inputDecoration("Mnemonic Phrase"),
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: _connectWalletManually,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
+                          minimumSize: const Size(double.infinity, 48),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text(
+                          "Save Wallet",
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            else
+              Card(
+                color: const Color(0xFF1C1F2E),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Row(
@@ -260,28 +283,37 @@ class _UploadPageState extends State<UploadPage> {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text("Issuer: $_issuerName",
-                              style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold)),
-                          const SizedBox(height: 8),
+                          Text(
+                            "Issuer: $_issuerName",
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
                           Text(
                             "Wallet: ${_walletAddress!.substring(0, 6)}...${_walletAddress!.substring(_walletAddress!.length - 4)}",
                             style: const TextStyle(
-                                color: Colors.white70, fontSize: 14),
+                              color: Colors.white70,
+                              fontSize: 14,
+                            ),
                           ),
                           if (_walletBalanceLamports != null)
                             Text(
                               "Balance: ${_walletBalanceLamports! / 1e9} SOL",
                               style: const TextStyle(
-                                  color: Colors.white70, fontSize: 14),
+                                color: Colors.white70,
+                                fontSize: 14,
+                              ),
                             ),
                           if (_gasFeeLamports != null)
                             Text(
                               "Gas Fee: ${_gasFeeLamports! / 1e9} SOL",
                               style: const TextStyle(
-                                  color: Colors.white70, fontSize: 14),
+                                color: Colors.white70,
+                                fontSize: 14,
+                              ),
                             ),
                         ],
                       ),
@@ -295,44 +327,68 @@ class _UploadPageState extends State<UploadPage> {
                           });
                         },
                         icon: const Icon(Icons.logout, color: Colors.red),
-                      )
+                      ),
                     ],
                   ),
                 ),
               ),
-            const SizedBox(height: 20),
-            TextField(
-              controller: _rollNoController,
-              decoration: _inputDecoration("Enter Student Roll Number"),
-              style: const TextStyle(color: Colors.white),
+
+            const SizedBox(height: 24),
+
+            // Upload Section
+            Text(
+              "Upload Certificate",
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: _uploading ? null : _uploadCertificate,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF7B61FF),
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+
+            Card(
+              color: const Color(0xFF1C1F2E),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    TextField(
+                      controller: _rollNoController,
+                      decoration: _inputDecoration("Student Roll Number"),
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton.icon(
+                      onPressed: _uploading ? null : _uploadCertificate,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF7B61FF),
+                        minimumSize: const Size(double.infinity, 48),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      icon:
+                          _uploading
+                              ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                              : const Icon(Icons.upload, color: Colors.white),
+                      label: Text(
+                        _uploading ? "Uploading..." : "Upload Certificate",
+                        style: const TextStyle(color: Colors.white),
                       ),
                     ),
-                    icon: _uploading
-                        ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
-                        color: Colors.white,
-                        strokeWidth: 2,
-                      ),
-                    )
-                        : const Icon(Icons.upload, color: Colors.white),
-                    label: Text(_uploading ? "Uploading..." : "Upload"),
-                  ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ],
         ),
@@ -346,9 +402,7 @@ class _UploadPageState extends State<UploadPage> {
       hintStyle: const TextStyle(color: Colors.white54),
       filled: true,
       fillColor: const Color(0xFF1C1F2E),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
     );
   }
 }

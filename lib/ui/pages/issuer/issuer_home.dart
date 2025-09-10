@@ -7,6 +7,9 @@ import 'package:certichain/services/supabase_service.dart';
 import 'package:certichain/ui/auth/login_page.dart';
 import 'package:solana/solana.dart';
 import 'package:bs58/bs58.dart'; // base58
+import 'package:provider/provider.dart';
+import 'package:certichain/providers/wallet_provider.dart';
+
 
 class IssuerHomePage extends StatefulWidget {
   const IssuerHomePage({super.key});
@@ -60,10 +63,12 @@ class _IssuerHomePageState extends State<IssuerHomePage> {
     }
 
     final profile = await SupabaseService.getProfile();
-    setState(() {
-      _walletAddress = input;
-      _issuerName = profile?['full_name'] ?? "Issuer";
-    });
+
+    Provider.of<WalletProvider>(context, listen: false).setWallet(
+      input,
+      issuerName: profile?['full_name'] ?? "Issuer",
+    );
+
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("Wallet address saved!")),
@@ -71,7 +76,9 @@ class _IssuerHomePageState extends State<IssuerHomePage> {
   }
 
   Future<void> _uploadCertificate() async {
-    if (_walletAddress == null) {
+    final walletProvider = Provider.of<WalletProvider>(context, listen: false);
+
+    if (!walletProvider.isConnected) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Enter your wallet address first!")),
       );
@@ -131,14 +138,13 @@ class _IssuerHomePageState extends State<IssuerHomePage> {
       Ed25519HDKeyPair issuerKeypair;
 
       if (_mnemonicController.text.trim().isNotEmpty) {
-        // From mnemonic
         issuerKeypair =
         await Ed25519HDKeyPair.fromMnemonic(_mnemonicController.text.trim());
       } else {
-        // From secret key (handle 32-byte requirement)
         final secretKey = base58.decode(_privateKeyController.text.trim());
         final seed = secretKey.length > 32 ? secretKey.sublist(0, 32) : secretKey;
-        issuerKeypair = await Ed25519HDKeyPair.fromPrivateKeyBytes(privateKey: seed);
+        issuerKeypair =
+        await Ed25519HDKeyPair.fromPrivateKeyBytes(privateKey: seed);
       }
 
       final message = Message(
@@ -186,6 +192,7 @@ class _IssuerHomePageState extends State<IssuerHomePage> {
     }
   }
 
+
   void _showLogoutSheet(BuildContext context) {
     showModalBottomSheet(
       backgroundColor: const Color(0xFF1C1F2E),
@@ -203,10 +210,19 @@ class _IssuerHomePageState extends State<IssuerHomePage> {
                 leading: const Icon(Icons.logout, color: Colors.red),
                 title: const Text(
                   "Logout",
-                  style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    color: Colors.red,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 onTap: () async {
+                  // Clear wallet state
+                  Provider.of<WalletProvider>(context, listen: false).clearWallet();
+
+                  // Supabase sign out
                   await SupabaseService.signOut();
+
+                  // Go back to login
                   Navigator.of(context).pushAndRemoveUntil(
                     MaterialPageRoute(builder: (_) => const LoginPage()),
                         (route) => false,
@@ -301,7 +317,7 @@ class _IssuerHomePageState extends State<IssuerHomePage> {
                   ),
                 ),
                 child: const Text(
-                  "   Save Wallet   ",
+                  "   Se Wallet   ",
                   style: TextStyle(color: Colors.white),
                 ),
               ),
