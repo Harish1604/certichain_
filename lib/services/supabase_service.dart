@@ -181,7 +181,6 @@ class SupabaseService {
 
     return List<Map<String, dynamic>>.from(data);
   }
-
 }
 
 
