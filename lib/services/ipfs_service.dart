@@ -36,7 +36,6 @@ class PinataService {
     }
   }
 
-  /// Get public gateway URL for CID
   static String getFileUrl(String cid) {
     return "https://gateway.pinata.cloud/ipfs/$cid";
   }
