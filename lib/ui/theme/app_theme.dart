@@ -6,8 +6,6 @@ class AppTheme {
   static const Color secondaryColor = Color(0xFF8E82F9);
   static const Color backgroundColor = Color(0xFF0A0E21);
 
-
-
   static ThemeData get theme {
     return ThemeData(
       scaffoldBackgroundColor: primaryColor,
