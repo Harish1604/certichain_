@@ -13,7 +13,6 @@ class PinataService {
     return digest.toString();
   }
 
-  /// Upload file to Pinata → return CID
   static Future<String> uploadFile(Uint8List fileBytes, String fileName) async {
     try {
       final request = http.MultipartRequest("POST", Uri.parse(pinataUrl));
