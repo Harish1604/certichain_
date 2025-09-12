@@ -8,7 +8,6 @@ class PinataService {
   static const String pinataUrl =
       "https://api.pinata.cloud/pinning/pinFileToIPFS";
 
-  /// Generate SHA-256 hash of file
   static String generateHash(Uint8List bytes) {
     final digest = sha256.convert(bytes);
     return digest.toString();
