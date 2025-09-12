@@ -32,13 +32,14 @@ class CertificateTile extends StatelessWidget {
           title: Text(
             fileName,
             style: const TextStyle(
-                color: Colors.white, fontWeight: FontWeight.bold),
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           subtitle: Text(
             "$studentName • $rollNo${date != null ? '\n$date' : ''}",
             style: const TextStyle(color: Colors.white70, fontSize: 12),
           ),
-
         ),
       ),
     );
