@@ -15,14 +15,12 @@ void main() async {
   await Supabase.initialize(
     url: 'https://qxxmajyoxnuhavxgtgmw.supabase.co',
     anonKey:
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF4eG1hanlveG51aGF2eGd0Z213Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcxNjg3OTYsImV4cCI6MjA3Mjc0NDc5Nn0.90s1l9PDylLpirQr-es8NFRsBlhf4Ghq1gYFTscOo2U',
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF4eG1hanlveG51aGF2eGd0Z213Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcxNjg3OTYsImV4cCI6MjA3Mjc0NDc5Nn0.90s1l9PDylLpirQr-es8NFRsBlhf4Ghq1gYFTscOo2U',
   );
 
   runApp(
     MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => WalletProvider()),
-      ],
+      providers: [ChangeNotifierProvider(create: (_) => WalletProvider())],
       child: const MyApp(),
     ),
   );
@@ -104,11 +102,7 @@ class _SplashScreenState extends State<SplashScreen> {
                 color: Colors.white.withOpacity(0.15),
               ),
               padding: const EdgeInsets.all(30),
-              child: const Icon(
-                Icons.verified,
-                size: 64,
-                color: Colors.white,
-              ),
+              child: const Icon(Icons.verified, size: 64, color: Colors.white),
             ),
             const SizedBox(height: 20),
             const Text(
@@ -152,6 +146,4 @@ class _SplashScreenState extends State<SplashScreen> {
       ),
     );
   }
-
 }
-
