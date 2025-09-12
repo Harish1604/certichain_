@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:provider/provider.dart';
-import 'providers/wallet_provider.dart'; // <-- make sure import path is right
+import 'providers/wallet_provider.dart';
 
 import 'ui/auth/login_page.dart';
 import 'ui/pages/student/student_home.dart';
@@ -51,7 +51,6 @@ class MyApp extends StatelessWidget {
     );
   }
 }
-
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
