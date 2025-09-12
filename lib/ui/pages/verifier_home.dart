@@ -130,6 +130,7 @@ class VerifierHomePage extends StatelessWidget {
     );
   }
 
+
   static Widget _buildStatCard(
       String value, String label, IconData icon, Color color) {
     return Container(
