@@ -5,7 +5,7 @@ class CertificateTile extends StatelessWidget {
   final String studentName;
   final String rollNo;
   final String? date;
-  final VoidCallback? onTap; // optional tap callback
+  final VoidCallback? onTap;
 
   const CertificateTile({
     super.key,
