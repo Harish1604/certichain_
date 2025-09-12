@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../../services/supabase_service.dart';
 import 'package:certichain/ui/auth/login_page.dart';
 
-
 class VerifierHomePage extends StatelessWidget {
   const VerifierHomePage({super.key});
 
@@ -24,13 +23,15 @@ class VerifierHomePage extends StatelessWidget {
                 title: const Text(
                   "Logout",
                   style: TextStyle(
-                      color: Colors.red, fontWeight: FontWeight.bold),
+                    color: Colors.red,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 onTap: () async {
                   await SupabaseService.signOut();
                   Navigator.of(context).pushAndRemoveUntil(
                     MaterialPageRoute(builder: (_) => const LoginPage()),
-                        (route) => false,
+                    (route) => false,
                   );
                 },
               ),
@@ -78,27 +79,37 @@ class VerifierHomePage extends StatelessWidget {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: const [
-                      Text("Good Evening,",
-                          style: TextStyle(color: Colors.white70)),
-                      Text("Verifier",
-                          style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white)),
-                      Text("Wallet: 0x9876...DCBA",
-                          style: TextStyle(color: Colors.white54, fontSize: 12)),
+                      Text(
+                        "Good Evening,",
+                        style: TextStyle(color: Colors.white70),
+                      ),
+                      Text(
+                        "Verifier",
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      Text(
+                        "Wallet: 0x9876...DCBA",
+                        style: TextStyle(color: Colors.white54, fontSize: 12),
+                      ),
                     ],
-                  )
+                  ),
                 ],
               ),
             ),
             const SizedBox(height: 24),
 
-            const Text("Verification Dashboard",
-                style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white)),
+            const Text(
+              "Verification Dashboard",
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
             const SizedBox(height: 12),
 
             GridView.count(
@@ -108,18 +119,25 @@ class VerifierHomePage extends StatelessWidget {
               mainAxisSpacing: 12,
               physics: const NeverScrollableScrollPhysics(),
               children: [
-                _buildStatCard("5", "Certificates Checked", Icons.task_alt,
-                    Colors.green),
+                _buildStatCard(
+                  "5",
+                  "Certificates Checked",
+                  Icons.task_alt,
+                  Colors.green,
+                ),
                 _buildStatCard("2", "Flagged", Icons.warning, Colors.redAccent),
               ],
             ),
             const SizedBox(height: 24),
 
-            const Text("Recent Verifications",
-                style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white)),
+            const Text(
+              "Recent Verifications",
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
             const SizedBox(height: 12),
 
             _buildVerificationTile("Alice Johnson", "Valid", "02 Sep 2025"),
@@ -130,9 +148,12 @@ class VerifierHomePage extends StatelessWidget {
     );
   }
 
-
   static Widget _buildStatCard(
-      String value, String label, IconData icon, Color color) {
+    String value,
+    String label,
+    IconData icon,
+    Color color,
+  ) {
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFF1C1F2E),
@@ -144,20 +165,28 @@ class VerifierHomePage extends StatelessWidget {
         children: [
           Icon(icon, color: color, size: 28),
           const SizedBox(height: 16),
-          Text(value,
-              style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold)),
-          Text(label,
-              style: const TextStyle(color: Colors.white70, fontSize: 14)),
+          Text(
+            value,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          Text(
+            label,
+            style: const TextStyle(color: Colors.white70, fontSize: 14),
+          ),
         ],
       ),
     );
   }
 
   static Widget _buildVerificationTile(
-      String name, String status, String date) {
+    String name,
+    String status,
+    String date,
+  ) {
     Color statusColor = status == "Valid" ? Colors.green : Colors.redAccent;
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -167,15 +196,23 @@ class VerifierHomePage extends StatelessWidget {
       ),
       child: ListTile(
         leading: const Icon(Icons.verified_user, color: Colors.tealAccent),
-        title: Text(name,
-            style: const TextStyle(
-                color: Colors.white, fontWeight: FontWeight.bold)),
-        subtitle: Text("$status • $date",
-            style: TextStyle(color: statusColor, fontSize: 12)),
-        trailing: const Icon(Icons.arrow_forward_ios,
-            size: 16, color: Colors.white70),
+        title: Text(
+          name,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        subtitle: Text(
+          "$status • $date",
+          style: TextStyle(color: statusColor, fontSize: 12),
+        ),
+        trailing: const Icon(
+          Icons.arrow_forward_ios,
+          size: 16,
+          color: Colors.white70,
+        ),
       ),
-
     );
   }
 }
