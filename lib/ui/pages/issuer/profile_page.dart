@@ -5,7 +5,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -19,11 +18,16 @@ class ProfilePage extends StatelessWidget {
         future: SupabaseService.getProfile(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator(color: Colors.purpleAccent));
+            return const Center(
+              child: CircularProgressIndicator(color: Colors.purpleAccent),
+            );
           }
           if (!snapshot.hasData || snapshot.data == null) {
             return const Center(
-              child: Text("No profile found", style: TextStyle(color: Colors.white70)),
+              child: Text(
+                "No profile found",
+                style: TextStyle(color: Colors.white70),
+              ),
             );
           }
 
@@ -46,7 +50,9 @@ class ProfilePage extends StatelessWidget {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.redAccent,
                     minimumSize: const Size(double.infinity, 50),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                   onPressed: () async {
                     await SupabaseService.signOut();
@@ -55,7 +61,10 @@ class ProfilePage extends StatelessWidget {
                     }
                   },
                   icon: const Icon(Icons.logout, color: Colors.white),
-                  label: const Text("Logout", style: TextStyle(color: Colors.white)),
+                  label: const Text(
+                    "Logout",
+                    style: TextStyle(color: Colors.white),
+                  ),
                 ),
               ],
             ),
@@ -64,8 +73,6 @@ class ProfilePage extends StatelessWidget {
       ),
     );
   }
-
-
 
   Widget _buildProfileCard(String label, String value) {
     return Container(
@@ -79,14 +86,25 @@ class ProfilePage extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label,
-              style: const TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.w500)),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
           const SizedBox(height: 6),
-          Text(value,
-              style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+          Text(
+            value,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
         ],
       ),
     );
   }
-
 }
