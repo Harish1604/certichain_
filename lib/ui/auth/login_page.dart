@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../services/supabase_service.dart';
-import '../pages/issuer/issuer_home.dart';
 import '../pages/issuer/issuer_main.dart';
 import '../pages/student/student_home.dart';
-import '../pages/verifier_home.dart';
+import '../pages/verifier/verifier_home.dart';
 import 'signup_page.dart';
 
 class LoginPage extends StatefulWidget {

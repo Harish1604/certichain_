@@ -13,9 +13,11 @@ class UploadPage extends StatefulWidget {
   @override
   State<UploadPage> createState() => _UploadPageState();
 }
+
 class _UploadPageState extends State<UploadPage> {
   bool _uploading = false;
   final TextEditingController _rollNoController = TextEditingController();
+  final TextEditingController _certIdController = TextEditingController(); // NEW
   final TextEditingController _walletController = TextEditingController();
   final TextEditingController _privateKeyController = TextEditingController();
   final TextEditingController _mnemonicController = TextEditingController();
@@ -91,6 +93,13 @@ class _UploadPageState extends State<UploadPage> {
       return;
     }
 
+    if (_certIdController.text.trim().isEmpty) { // NEW
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please enter a certificate ID.")),
+      );
+      return;
+    }
+
     if (_privateKeyController.text.trim().isEmpty &&
         _mnemonicController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -125,6 +134,7 @@ class _UploadPageState extends State<UploadPage> {
         hash: hash,
         fileName: fileName,
         studentRollNo: _rollNoController.text.trim(),
+        certId: _certIdController.text.trim(), // NEW
       );
 
       final client = SolanaClient(
@@ -141,7 +151,7 @@ class _UploadPageState extends State<UploadPage> {
       } else {
         final secretKey = base58.decode(_privateKeyController.text.trim());
         final seed =
-            secretKey.length > 32 ? secretKey.sublist(0, 32) : secretKey;
+        secretKey.length > 32 ? secretKey.sublist(0, 32) : secretKey;
         issuerKeypair = await Ed25519HDKeyPair.fromPrivateKeyBytes(
           privateKey: seed,
         );
@@ -359,6 +369,12 @@ class _UploadPageState extends State<UploadPage> {
                       decoration: _inputDecoration("Student Roll Number"),
                       style: const TextStyle(color: Colors.white),
                     ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _certIdController, // NEW
+                      decoration: _inputDecoration("Certificate ID"), // NEW
+                      style: const TextStyle(color: Colors.white), // NEW
+                    ),
                     const SizedBox(height: 16),
                     ElevatedButton.icon(
                       onPressed: _uploading ? null : _uploadCertificate,
@@ -370,16 +386,16 @@ class _UploadPageState extends State<UploadPage> {
                         ),
                       ),
                       icon:
-                          _uploading
-                              ? const SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2,
-                                ),
-                              )
-                              : const Icon(Icons.upload, color: Colors.white),
+                      _uploading
+                          ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                          : const Icon(Icons.upload, color: Colors.white),
                       label: Text(
                         _uploading ? "Uploading..." : "Upload Certificate",
                         style: const TextStyle(color: Colors.white),

@@ -6,7 +6,7 @@ import 'providers/wallet_provider.dart';
 import 'ui/auth/login_page.dart';
 import 'ui/pages/student/student_home.dart';
 import 'ui/pages/issuer/issuer_main.dart';
-import 'ui/pages/verifier_home.dart';
+import 'ui/pages/verifier/verifier_home.dart';
 import 'services/supabase_service.dart';
 
 void main() async {
