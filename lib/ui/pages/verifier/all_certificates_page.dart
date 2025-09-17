@@ -19,6 +19,7 @@ class _AllCertificatesPageState extends State<AllCertificatesPage> {
     _loadCertificates();
   }
 
+
   Future<void> _loadCertificates() async {
     final data = await SupabaseService.fetchAllCertificates();
     setState(() {
