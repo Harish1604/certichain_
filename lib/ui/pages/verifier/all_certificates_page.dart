@@ -90,7 +90,6 @@ class _AllCertificatesPageState extends State<AllCertificatesPage> {
           );
         },
       ),
-
     );
   }
 }
