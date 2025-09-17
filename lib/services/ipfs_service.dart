@@ -27,7 +27,7 @@ class PinataService {
       if (response.statusCode == 200) {
         final body = await response.stream.bytesToString();
         final json = jsonDecode(body);
-        return json['IpfsHash']; // CID from Pinata
+        return json['IpfsHash'];
       } else {
         throw Exception("Failed to upload: ${response.statusCode}");
       }
