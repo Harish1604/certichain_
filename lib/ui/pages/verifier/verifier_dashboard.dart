@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../services/supabase_service.dart';
-import 'package:flutter/services.dart';
+import 'certificate_page.dart';
 
 class VerifierDashboard extends StatefulWidget {
   const VerifierDashboard({super.key});
@@ -15,6 +15,10 @@ class _VerifierDashboardState extends State<VerifierDashboard> {
   List<Map<String, dynamic>> _filteredStudents = [];
   bool _loading = true;
 
+  int verifiedCount = 0;
+  int flaggedCount = 0;
+  int totalCount = 0;
+
   @override
   void initState() {
     super.initState();
@@ -25,11 +29,14 @@ class _VerifierDashboardState extends State<VerifierDashboard> {
     setState(() => _loading = true);
     final allCerts = await SupabaseService.fetchAllCertificates();
 
-    // Aggregate students with certificates
+    // Aggregate students
     Map<String, Map<String, dynamic>> studentsMap = {};
+    int verified = 0, flagged = 0;
+
     for (var cert in allCerts) {
       final student = cert['student'];
       if (student == null) continue;
+
       final key = student['roll_no'] ?? student['full_name'];
       if (!studentsMap.containsKey(key)) {
         studentsMap[key] = {
@@ -39,11 +46,23 @@ class _VerifierDashboardState extends State<VerifierDashboard> {
         };
       }
       studentsMap[key]!['certificates'].add(cert);
+
+      if ((cert['status'] ?? 'active') == 'flagged') {
+        flagged++;
+      } else {
+        verified++;
+      }
     }
 
     _students = studentsMap.values.toList();
     _filteredStudents = List.from(_students);
-    setState(() => _loading = false);
+
+    setState(() {
+      verifiedCount = verified;
+      flaggedCount = flagged;
+      totalCount = allCerts.length;
+      _loading = false;
+    });
   }
 
   void _filterStudents(String query) {
@@ -60,101 +79,28 @@ class _VerifierDashboardState extends State<VerifierDashboard> {
     });
   }
 
-  void _showCertificates(Map<String, dynamic> student) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: const Color(0xFF1C1F2E),
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
-      isScrollControlled: true,
-      builder: (_) {
-        final certs = student['certificates'] ?? [];
-        return Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                "${student['full_name']} (${student['roll_no']})",
+  Widget _statCard(String title, int count, Color color, IconData icon) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        margin: const EdgeInsets.symmetric(horizontal: 6),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1C1F2E),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: color, size: 28),
+            const SizedBox(height: 8),
+            Text(title,
+                style: TextStyle(color: color, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 4),
+            Text(count.toString(),
                 style: const TextStyle(
-                    color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 12),
-              Flexible(
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: certs.length,
-                  itemBuilder: (context, index) {
-                    final cert = certs[index];
-                    final status = cert['status'] ?? 'active';
-                    final verified = status == 'active';
-                    final tx = cert['tx_signature'];
-                    final cid = cert['cid'];
-                    final ipfsUrl = cid != null ? 'https://ipfs.io/ipfs/$cid' : null;
-
-                    return Card(
-                      color: const Color(0xFF2A2D3E),
-                      margin: const EdgeInsets.symmetric(vertical: 6),
-                      child: Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text("Cert ID: ${cert['cert_id'] ?? '—'}",
-                                style: const TextStyle(color: Colors.white)),
-                            Text("File: ${cert['file_name'] ?? '—'}",
-                                style: const TextStyle(color: Colors.white70)),
-                            Text("Status: $status",
-                                style: TextStyle(
-                                    color: verified ? Colors.green : Colors.redAccent)),
-                            if (tx != null)
-                              SelectableText("On-chain Tx: $tx",
-                                  style: const TextStyle(color: Colors.tealAccent)),
-                            const SizedBox(height: 8),
-                            Row(
-                              children: [
-                                if (ipfsUrl != null)
-                                  ElevatedButton(
-                                      onPressed: () {
-                                        Clipboard.setData(ClipboardData(text: ipfsUrl));
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                            const SnackBar(content: Text("IPFS link copied")));
-                                      },
-                                      child: const Text("Copy IPFS Link")),
-                                const SizedBox(width: 8),
-                                ElevatedButton(
-                                  onPressed: () async {
-                                    await SupabaseService.flagCertificate(cert['cert_id'],
-                                        reason: "Verifier flagged as suspicious");
-                                    setState(() => cert['status'] = 'flagged');
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.redAccent),
-                                  child: const Text("Flag"),
-                                ),
-                                const SizedBox(width: 8),
-                                ElevatedButton(
-                                  onPressed: () async {
-                                    await SupabaseService.approveCertificate(cert['cert_id']);
-                                    setState(() => cert['status'] = 'active');
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.green),
-                                  child: const Text("Approve"),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-        );
-      },
+                    color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+          ],
+        ),
+      ),
     );
   }
 
@@ -169,12 +115,22 @@ class _VerifierDashboardState extends State<VerifierDashboard> {
         const Text("Verifier Dashboard", style: TextStyle(color: Colors.white)),
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: Colors.white))
+          ? const Center(child: CircularProgressIndicator(color: Colors.purpleAccent))
           : Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            // ===== SEARCH BOX =====
+            // ==== DASHBOARD STATS ====
+            Row(
+              children: [
+                _statCard("Verified", verifiedCount, Colors.green, Icons.verified),
+                _statCard("Flagged", flaggedCount, Colors.redAccent, Icons.flag),
+                _statCard("Total", totalCount, Colors.blue, Icons.file_copy),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // ==== SEARCH BOX ====
             TextField(
               controller: _searchController,
               onChanged: _filterStudents,
@@ -191,6 +147,8 @@ class _VerifierDashboardState extends State<VerifierDashboard> {
               style: const TextStyle(color: Colors.white),
             ),
             const SizedBox(height: 16),
+
+            // ==== STUDENT LIST ====
             Expanded(
               child: _filteredStudents.isEmpty
                   ? const Center(
@@ -203,22 +161,40 @@ class _VerifierDashboardState extends State<VerifierDashboard> {
                 itemCount: _filteredStudents.length,
                 itemBuilder: (context, index) {
                   final student = _filteredStudents[index];
-                  return ListTile(
-                    tileColor: const Color(0xFF1C1F2E),
+                  return Card(
+                    color: const Color(0xFF1C1F2E),
+                    margin: const EdgeInsets.symmetric(vertical: 6),
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12)),
-                    contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 8),
-                    title: Text(
-                      student['full_name'] ?? "—",
-                      style: const TextStyle(color: Colors.white),
+                    child: ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: Colors.blueAccent,
+                        child: Text(
+                          student['full_name'] != null &&
+                              student['full_name'].isNotEmpty
+                              ? student['full_name'][0].toUpperCase()
+                              : "?",
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                      ),
+                      title: Text(
+                        student['full_name'] ?? "—",
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                      subtitle: Text(student['roll_no'] ?? "—",
+                          style: const TextStyle(color: Colors.white70)),
+                      trailing: const Icon(Icons.arrow_forward_ios,
+                          color: Colors.white70, size: 16),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                CertificatePage(student: student),
+                          ),
+                        );
+                      },
                     ),
-                    subtitle: Text(student['roll_no'] ?? "—",
-                        style:
-                        const TextStyle(color: Colors.white70)),
-                    trailing: const Icon(Icons.arrow_forward_ios,
-                        color: Colors.white70, size: 16),
-                    onTap: () => _showCertificates(student),
                   );
                 },
               ),

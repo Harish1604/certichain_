@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../services/supabase_service.dart';
 import 'login_page.dart';
+import '../../ui/theme/app_theme.dart';
 
 class SignupPage extends StatefulWidget {
   const SignupPage({super.key});
@@ -44,17 +45,18 @@ class _SignupPageState extends State<SignupPage> {
         rollNo: _selectedRole == 'student' ? rollNo : null,
       );
 
-      // Show verification alert
       await showDialog(
         context: context,
         builder: (ctx) => AlertDialog(
+          shape:
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: const Text("Verify Your Email"),
           content: Text(
               "A verification link has been sent to ${user?.email}. Please check your inbox and verify your account."),
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.of(ctx).pop(); // Close the dialog
+                Navigator.of(ctx).pop();
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(builder: (_) => const LoginPage()),
@@ -74,73 +76,137 @@ class _SignupPageState extends State<SignupPage> {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0E21),
+      backgroundColor: AppTheme.backgroundColor,
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 80),
-            const Text("Sign Up",
-                style: TextStyle(
+            // ✅ Header
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.only(top: 100, bottom: 40),
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [AppTheme.primaryColor, AppTheme.secondaryColor],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+              child: const Center(
+                child: Text(
+                  "Create Account",
+                  style: TextStyle(
                     color: Colors.white,
                     fontSize: 28,
-                    fontWeight: FontWeight.bold)),
-            const SizedBox(height: 40),
-            _buildTextField(_fullNameController, "Full Name"),
-            const SizedBox(height: 16),
-            _buildTextField(_emailController, "Email"),
-            const SizedBox(height: 16),
-            _buildTextField(_passwordController, "Password", obscure: true),
-            const SizedBox(height: 16),
-            if (_selectedRole == 'student')
-              _buildTextField(_rollNoController, "Roll Number"),
-            const SizedBox(height: 16),
-            DropdownButtonFormField<String>(
-              value: _selectedRole,
-              dropdownColor: const Color(0xFF1C1F2E),
-              decoration: InputDecoration(
-                filled: true,
-                fillColor: const Color(0xFF1C1F2E),
-                border:
-                OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              items: const [
-                DropdownMenuItem(
-                    value: 'student',
-                    child:
-                    Text("Student", style: TextStyle(color: Colors.white))),
-                DropdownMenuItem(
-                    value: 'issuer',
-                    child:
-                    Text("Issuer", style: TextStyle(color: Colors.white))),
-                DropdownMenuItem(
-                    value: 'verifier',
-                    child:
-                    Text("Verifier", style: TextStyle(color: Colors.white))),
-              ],
-              onChanged: (value) {
-                if (value != null) setState(() => _selectedRole = value);
-              },
-            ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _loading ? null : _signup,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF7B61FF),
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-                child: _loading
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text("Sign Up"),
+              ),
+            ),
+
+            // ✅ Form Container (Glass look)
+            Container(
+              margin: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.white24, width: 1),
+              ),
+              child: Column(
+                children: [
+                  _buildTextField(_fullNameController, "Full Name",
+                      icon: Icons.person),
+                  const SizedBox(height: 16),
+                  _buildTextField(_emailController, "Email", icon: Icons.email),
+                  const SizedBox(height: 16),
+                  _buildTextField(_passwordController, "Password",
+                      icon: Icons.lock, obscure: true),
+                  const SizedBox(height: 16),
+                  if (_selectedRole == 'student')
+                    _buildTextField(_rollNoController, "Roll Number",
+                        icon: Icons.badge),
+                  const SizedBox(height: 16),
+
+                  // ✅ Role dropdown
+                  DropdownButtonFormField<String>(
+                    value: _selectedRole,
+                    dropdownColor: const Color(0xFF1C1F2E),
+                    style: const TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
+                      prefixIcon: const Icon(Icons.account_circle,
+                          color: Colors.white70),
+                      filled: true,
+                      fillColor: const Color(0xFF1C1F2E),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                    ),
+                    items: const [
+                      DropdownMenuItem(
+                          value: 'student',
+                          child: Text("Student",
+                              style: TextStyle(color: Colors.white))),
+                      DropdownMenuItem(
+                          value: 'issuer',
+                          child: Text("Issuer",
+                              style: TextStyle(color: Colors.white))),
+                      DropdownMenuItem(
+                          value: 'verifier',
+                          child: Text("Verifier",
+                              style: TextStyle(color: Colors.white))),
+                    ],
+                    onChanged: (value) {
+                      if (value != null) setState(() => _selectedRole = value);
+                    },
+                  ),
+
+                  const SizedBox(height: 30),
+
+                  // ✅ Signup Button
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: _loading ? null : _signup,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primaryColor,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: _loading
+                          ? const CircularProgressIndicator(
+                          color: Colors.white)
+                          : const Text(
+                        "Sign Up",
+                        style: TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // ✅ Toggle to Login
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => const LoginPage()),
+                      );
+                    },
+                    child: const Text(
+                      "Already have an account? Login",
+                      style: TextStyle(
+                        color: Colors.white70,
+                        decoration: TextDecoration.underline,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -150,7 +216,7 @@ class _SignupPageState extends State<SignupPage> {
   }
 
   Widget _buildTextField(TextEditingController controller, String hint,
-      {bool obscure = false}) {
+      {bool obscure = false, IconData? icon}) {
     return TextField(
       controller: controller,
       obscureText: obscure,
@@ -158,6 +224,7 @@ class _SignupPageState extends State<SignupPage> {
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: const TextStyle(color: Colors.white54),
+        prefixIcon: Icon(icon, color: Colors.white70),
         filled: true,
         fillColor: const Color(0xFF1C1F2E),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),

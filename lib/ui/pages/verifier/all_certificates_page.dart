@@ -19,7 +19,6 @@ class _AllCertificatesPageState extends State<AllCertificatesPage> {
     _loadCertificates();
   }
 
-
   Future<void> _loadCertificates() async {
     final data = await SupabaseService.fetchAllCertificates();
     setState(() {
@@ -29,15 +28,18 @@ class _AllCertificatesPageState extends State<AllCertificatesPage> {
   }
 
   void _verifyCertificate(Map<String, dynamic> cert) async {
-    // Simply mark verified in log; dashboard tracks stats
-    await SupabaseService.logVerification(certId: cert['cert_id'], result: 'verified');
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Certificate Verified")));
+    await SupabaseService.logVerification(
+        certId: cert['cert_id'], result: 'verified');
+    ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Certificate Verified")));
     _loadCertificates();
   }
 
   void _flagCertificate(Map<String, dynamic> cert) async {
-    await SupabaseService.flagCertificate(cert['cert_id'], reason: "Verifier flagged");
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Certificate Flagged")));
+    await SupabaseService.flagCertificate(cert['cert_id'],
+        reason: "Verifier flagged");
+    ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Certificate Flagged")));
     _loadCertificates();
   }
 
@@ -48,10 +50,13 @@ class _AllCertificatesPageState extends State<AllCertificatesPage> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Text("All Certificates", style: TextStyle(color: Colors.white)),
+        title: const Text("All Certificates",
+            style: TextStyle(color: Colors.white)),
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: Colors.white))
+          ? const Center(
+        child: CircularProgressIndicator(color: Colors.purpleAccent),
+      )
           : ListView.builder(
         padding: const EdgeInsets.all(16),
         itemCount: certificates.length,
@@ -63,26 +68,58 @@ class _AllCertificatesPageState extends State<AllCertificatesPage> {
           return Card(
             color: const Color(0xFF1C1F2E),
             margin: const EdgeInsets.symmetric(vertical: 8),
-            child: ListTile(
-              title: Text("${student['full_name'] ?? '—'}", style: const TextStyle(color: Colors.white)),
-              subtitle: Column(
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text("Roll No: ${student['roll_no'] ?? '—'}", style: const TextStyle(color: Colors.white70)),
-                  Text("Cert ID: ${cert['cert_id'] ?? '—'}", style: const TextStyle(color: Colors.white70)),
-                  Text("Status: $status", style: TextStyle(color: status == 'flagged' ? Colors.redAccent : Colors.green)),
-                ],
-              ),
-              trailing: Wrap(
-                spacing: 8,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.verified, color: Colors.green),
-                    onPressed: () => _verifyCertificate(cert),
+                  // ---- LEFT SIDE (Details) ----
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          student['full_name'] ?? "—",
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          "Roll No: ${student['roll_no'] ?? '—'}",
+                          style: const TextStyle(color: Colors.white70),
+                        ),
+                        Text(
+                          "Cert ID: ${cert['cert_id'] ?? '—'}",
+                          style: const TextStyle(color: Colors.white70),
+                        ),
+                        Text(
+                          "Status: $status",
+                          style: TextStyle(
+                            color: status == 'flagged'
+                                ? Colors.redAccent
+                                : Colors.green,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.flag, color: Colors.redAccent),
-                    onPressed: () => _flagCertificate(cert),
+
+                  // ---- RIGHT SIDE (Actions) ----
+                  Column(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.verified,
+                            color: Colors.green),
+                        onPressed: () => _verifyCertificate(cert),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.flag,
+                            color: Colors.redAccent),
+                        onPressed: () => _flagCertificate(cert),
+                      ),
+                    ],
                   ),
                 ],
               ),

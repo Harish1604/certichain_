@@ -26,8 +26,8 @@ class _VerifierHomeState extends State<VerifierHomePage> {
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         backgroundColor: const Color(0xFF1C1F2E),
-        selectedItemColor: Colors.white,
-        unselectedItemColor: Colors.white54,
+        selectedItemColor: Colors.purpleAccent,
+        unselectedItemColor: Colors.white70,
         onTap: (index) => setState(() => _currentIndex = index),
         items: const [
           BottomNavigationBarItem(
