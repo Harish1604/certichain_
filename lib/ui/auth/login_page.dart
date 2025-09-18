@@ -28,6 +28,8 @@ class _LoginPageState extends State<LoginPage> {
       return;
     }
 
+
+
     try {
       setState(() => _loading = true);
       final user = await SupabaseService.signInUser(email, password);
