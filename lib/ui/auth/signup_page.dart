@@ -47,30 +47,33 @@ class _SignupPageState extends State<SignupPage> {
 
       await showDialog(
         context: context,
-        builder: (ctx) => AlertDialog(
-          shape:
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Text("Verify Your Email"),
-          content: Text(
-              "A verification link has been sent to ${user?.email}. Please check your inbox and verify your account."),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(ctx).pop();
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (_) => const LoginPage()),
-                );
-              },
-              child: const Text("OK"),
+        builder:
+            (ctx) => AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              title: const Text("Verify Your Email"),
+              content: Text(
+                "A verification link has been sent to ${user?.email}. Please check your inbox and verify your account.",
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(ctx).pop();
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (_) => const LoginPage()),
+                    );
+                  },
+                  child: const Text("OK"),
+                ),
+              ],
             ),
-          ],
-        ),
       );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Signup failed: $e")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Signup failed: $e")));
     } finally {
       setState(() => _loading = false);
     }
@@ -117,17 +120,27 @@ class _SignupPageState extends State<SignupPage> {
               ),
               child: Column(
                 children: [
-                  _buildTextField(_fullNameController, "Full Name",
-                      icon: Icons.person),
+                  _buildTextField(
+                    _fullNameController,
+                    "Full Name",
+                    icon: Icons.person,
+                  ),
                   const SizedBox(height: 16),
                   _buildTextField(_emailController, "Email", icon: Icons.email),
                   const SizedBox(height: 16),
-                  _buildTextField(_passwordController, "Password",
-                      icon: Icons.lock, obscure: true),
+                  _buildTextField(
+                    _passwordController,
+                    "Password",
+                    icon: Icons.lock,
+                    obscure: true,
+                  ),
                   const SizedBox(height: 16),
                   if (_selectedRole == 'student')
-                    _buildTextField(_rollNoController, "Roll Number",
-                        icon: Icons.badge),
+                    _buildTextField(
+                      _rollNoController,
+                      "Roll Number",
+                      icon: Icons.badge,
+                    ),
                   const SizedBox(height: 16),
 
                   // ✅ Role dropdown
@@ -136,26 +149,38 @@ class _SignupPageState extends State<SignupPage> {
                     dropdownColor: const Color(0xFF1C1F2E),
                     style: const TextStyle(color: Colors.white),
                     decoration: InputDecoration(
-                      prefixIcon: const Icon(Icons.account_circle,
-                          color: Colors.white70),
+                      prefixIcon: const Icon(
+                        Icons.account_circle,
+                        color: Colors.white70,
+                      ),
                       filled: true,
                       fillColor: const Color(0xFF1C1F2E),
                       border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12)),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                     items: const [
                       DropdownMenuItem(
-                          value: 'student',
-                          child: Text("Student",
-                              style: TextStyle(color: Colors.white))),
+                        value: 'student',
+                        child: Text(
+                          "Student",
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      ),
                       DropdownMenuItem(
-                          value: 'issuer',
-                          child: Text("Issuer",
-                              style: TextStyle(color: Colors.white))),
+                        value: 'issuer',
+                        child: Text(
+                          "Issuer",
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      ),
                       DropdownMenuItem(
-                          value: 'verifier',
-                          child: Text("Verifier",
-                              style: TextStyle(color: Colors.white))),
+                        value: 'verifier',
+                        child: Text(
+                          "Verifier",
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      ),
                     ],
                     onChanged: (value) {
                       if (value != null) setState(() => _selectedRole = value);
@@ -173,16 +198,21 @@ class _SignupPageState extends State<SignupPage> {
                         backgroundColor: AppTheme.primaryColor,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
-                      child: _loading
-                          ? const CircularProgressIndicator(
-                          color: Colors.white)
-                          : const Text(
-                        "Sign Up",
-                        style: TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
+                      child:
+                          _loading
+                              ? const CircularProgressIndicator(
+                                color: Colors.white,
+                              )
+                              : const Text(
+                                "Sign Up",
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                     ),
                   ),
 
@@ -194,7 +224,8 @@ class _SignupPageState extends State<SignupPage> {
                       Navigator.pushReplacement(
                         context,
                         MaterialPageRoute(
-                            builder: (context) => const LoginPage()),
+                          builder: (context) => const LoginPage(),
+                        ),
                       );
                     },
                     child: const Text(
@@ -215,8 +246,12 @@ class _SignupPageState extends State<SignupPage> {
     );
   }
 
-  Widget _buildTextField(TextEditingController controller, String hint,
-      {bool obscure = false, IconData? icon}) {
+  Widget _buildTextField(
+    TextEditingController controller,
+    String hint, {
+    bool obscure = false,
+    IconData? icon,
+  }) {
     return TextField(
       controller: controller,
       obscureText: obscure,
