@@ -218,7 +218,6 @@ class _SignupPageState extends State<SignupPage> {
 
                   const SizedBox(height: 20),
 
-                  // ✅ Toggle to Login
                   GestureDetector(
                     onTap: () {
                       Navigator.pushReplacement(
