@@ -13,7 +13,6 @@ class WalletProvider with ChangeNotifier {
     notifyListeners();
   }
 
-
   void clearWallet() {
     _walletAddress = null;
     _issuerName = "Issuer";
