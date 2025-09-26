@@ -175,6 +175,7 @@ class _CertificatePageState extends State<CertificatePage> {
                     ),
                   const SizedBox(height: 8),
                   Row(
+
                     children: [
                       Expanded(
                         child: ElevatedButton.icon(
