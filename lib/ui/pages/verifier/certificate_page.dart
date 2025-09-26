@@ -136,6 +136,7 @@ class _CertificatePageState extends State<CertificatePage> {
                       ),
                     ],
                   ),
+
                   const SizedBox(height: 6),
                   Text("File: ${cert['file_name'] ?? '—'}",
                       style: const TextStyle(
