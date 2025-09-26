@@ -33,7 +33,8 @@ class _StudentHomePageState extends State<StudentHomePage> {
 
   Future<List<Map<String, dynamic>>> _loadCertificates() async {
     final profile = await SupabaseService.getProfile();
-    final roll = profile?['roll_no'] ??
+    final roll =
+        profile?['roll_no'] ??
         profile?['student_roll_no'] ??
         profile?['roll'] ??
         profile?['rollno'];
@@ -70,13 +71,16 @@ class _StudentHomePageState extends State<StudentHomePage> {
                 leading: const Icon(Icons.logout, color: Colors.red),
                 title: const Text(
                   "Logout",
-                  style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    color: Colors.red,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 onTap: () async {
                   await SupabaseService.signOut();
                   Navigator.of(context).pushAndRemoveUntil(
                     MaterialPageRoute(builder: (_) => const LoginPage()),
-                        (route) => false,
+                    (route) => false,
                   );
                 },
               ),
@@ -104,7 +108,7 @@ class _StudentHomePageState extends State<StudentHomePage> {
         'Sep',
         'Oct',
         'Nov',
-        'Dec'
+        'Dec',
       ];
       return '${dt.day.toString().padLeft(2, '0')} ${monthNames[dt.month]} ${dt.year}';
     } catch (_) {
@@ -113,16 +117,21 @@ class _StudentHomePageState extends State<StudentHomePage> {
   }
 
   Widget _buildCertTileFromRow(Map<String, dynamic> cert) {
-    final title = cert['title'] ?? cert['file_name'] ?? cert['cid'] ?? 'Certificate';
-    final status = cert['status'] ??
-        ((cert['tx_signature'] != null && cert['tx_signature'].toString().isNotEmpty)
+    final title =
+        cert['title'] ?? cert['file_name'] ?? cert['cid'] ?? 'Certificate';
+    final status =
+        cert['status'] ??
+        ((cert['tx_signature'] != null &&
+                cert['tx_signature'].toString().isNotEmpty)
             ? 'Verified'
             : 'Pending');
-    final date =
-    _formatDate(cert['created_at'] ?? cert['uploaded_at'] ?? cert['createdAt']);
+    final date = _formatDate(
+      cert['created_at'] ?? cert['uploaded_at'] ?? cert['createdAt'],
+    );
 
     final cid = cert['cid'] ?? cert['ipfs_cid'];
-    Color statusColor = status == 'Verified' ? Colors.green : Colors.orangeAccent;
+    Color statusColor =
+        status == 'Verified' ? Colors.green : Colors.orangeAccent;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -131,20 +140,34 @@ class _StudentHomePageState extends State<StudentHomePage> {
         borderRadius: BorderRadius.circular(12),
       ),
       child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 12,
+        ),
         leading: const Icon(Icons.school, color: Colors.purpleAccent),
-        title: Text(title,
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: Text(
+          title,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text("$status • $date", style: TextStyle(color: statusColor, fontSize: 12)),
+            Text(
+              "$status • $date",
+              style: TextStyle(color: statusColor, fontSize: 12),
+            ),
             if (cid != null) ...[
               const SizedBox(height: 6),
               GestureDetector(
                 onTap: () {
                   final url = "https://gateway.pinata.cloud/ipfs/$cid";
-                  launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+                  launchUrl(
+                    Uri.parse(url),
+                    mode: LaunchMode.externalApplication,
+                  );
                 },
                 child: const Text(
                   "View on IPFS",
@@ -155,10 +178,14 @@ class _StudentHomePageState extends State<StudentHomePage> {
                   ),
                 ),
               ),
-            ]
+            ],
           ],
         ),
-        trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.white70),
+        trailing: const Icon(
+          Icons.arrow_forward_ios,
+          size: 16,
+          color: Colors.white70,
+        ),
       ),
     );
   }
@@ -198,14 +225,16 @@ class _StudentHomePageState extends State<StudentHomePage> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text('Failed to load certificates:\n${snap.error}',
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(color: Colors.white70)),
+                    Text(
+                      'Failed to load certificates:\n${snap.error}',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Colors.white70),
+                    ),
                     const SizedBox(height: 12),
                     ElevatedButton(
                       onPressed: _refresh,
                       child: const Text('Retry'),
-                    )
+                    ),
                   ],
                 ),
               ),
@@ -233,23 +262,36 @@ class _StudentHomePageState extends State<StudentHomePage> {
                         children: [
                           const CircleAvatar(
                             backgroundColor: Color(0xFF7B61FF),
-                            child: Text("ST", style: TextStyle(color: Colors.white)),
+                            child: Text(
+                              "ST",
+                              style: TextStyle(color: Colors.white),
+                            ),
                           ),
                           const SizedBox(width: 16),
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text("Hello,", style: TextStyle(color: Colors.white70)),
-                              Text(_studentName ?? 'Student',
-                                  style: const TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white)),
-                              Text("Roll: ${_rollNo ?? 'Not set'}",
-                                  style: const TextStyle(
-                                      color: Colors.white54, fontSize: 12)),
+                              const Text(
+                                "Hello,",
+                                style: TextStyle(color: Colors.white70),
+                              ),
+                              Text(
+                                _studentName ?? 'Student',
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              Text(
+                                "Roll: ${_rollNo ?? 'Not set'}",
+                                style: const TextStyle(
+                                  color: Colors.white54,
+                                  fontSize: 12,
+                                ),
+                              ),
                             ],
-                          )
+                          ),
                         ],
                       ),
                       const SizedBox(height: 12),
@@ -257,12 +299,18 @@ class _StudentHomePageState extends State<StudentHomePage> {
                       if (_companyName != null && _companyName!.isNotEmpty)
                         Row(
                           children: [
-                            const Icon(Icons.business, size: 18, color: Colors.greenAccent),
+                            const Icon(
+                              Icons.business,
+                              size: 18,
+                              color: Colors.greenAccent,
+                            ),
                             const SizedBox(width: 8),
                             Text(
                               _companyName!,
                               style: const TextStyle(
-                                  color: Colors.greenAccent, fontWeight: FontWeight.bold),
+                                color: Colors.greenAccent,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ],
                         ),
@@ -275,107 +323,118 @@ class _StudentHomePageState extends State<StudentHomePage> {
                 // Company update block (toggle visibility)
                 _editingCompany
                     ? Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1C1F2E),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text("Enter Company Name",
-                          style: TextStyle(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1C1F2E),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            "Enter Company Name",
+                            style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
-                              color: Colors.white)),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: _companyController,
-                        style: const TextStyle(color: Colors.white),
-                        decoration: InputDecoration(
-                          hintText: "Enter your company name",
-                          hintStyle: const TextStyle(color: Colors.white54),
-                          filled: true,
-                          fillColor: const Color(0xFF2A2D3E),
-                          border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide.none),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green,
-                        ),
-                        onPressed: () async {
-                          final company = _companyController.text.trim();
-                          if (company.isEmpty) return;
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          TextField(
+                            controller: _companyController,
+                            style: const TextStyle(color: Colors.white),
+                            decoration: InputDecoration(
+                              hintText: "Enter your company name",
+                              hintStyle: const TextStyle(color: Colors.white54),
+                              filled: true,
+                              fillColor: const Color(0xFF2A2D3E),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide.none,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.green,
+                            ),
+                            onPressed: () async {
+                              final company = _companyController.text.trim();
+                              if (company.isEmpty) return;
 
-                          try {
-                            await SupabaseService.updateStudentCompany(
-                                companyName: company);
-                            setState(() {
-                              _companyName = company;
-                              _editingCompany = false; // hide input
-                            });
+                              try {
+                                await SupabaseService.updateStudentCompany(
+                                  companyName: company,
+                                );
+                                setState(() {
+                                  _companyName = company;
+                                  _editingCompany = false; // hide input
+                                });
 
-                            showDialog(
-                                context: context,
-                                builder: (_) {
-                                  return AlertDialog(
-                                    title: const Text("Success"),
-                                    content: const Text(
-                                        "Company name updated successfully."),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () =>
-                                            Navigator.of(context).pop(),
-                                        child: const Text("OK"),
-                                      )
-                                    ],
-                                  );
-                                });
-                          } catch (e) {
-                            showDialog(
-                                context: context,
-                                builder: (_) {
-                                  return AlertDialog(
-                                    title: const Text("Error"),
-                                    content: Text("Failed: $e"),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () =>
-                                            Navigator.of(context).pop(),
-                                        child: const Text("OK"),
-                                      )
-                                    ],
-                                  );
-                                });
-                          }
-                        },
-                        child: const Text("Save"),
+                                showDialog(
+                                  context: context,
+                                  builder: (_) {
+                                    return AlertDialog(
+                                      title: const Text("Success"),
+                                      content: const Text(
+                                        "Company name updated successfully.",
+                                      ),
+                                      actions: [
+                                        TextButton(
+                                          onPressed:
+                                              () => Navigator.of(context).pop(),
+                                          child: const Text("OK"),
+                                        ),
+                                      ],
+                                    );
+                                  },
+                                );
+                              } catch (e) {
+                                showDialog(
+                                  context: context,
+                                  builder: (_) {
+                                    return AlertDialog(
+                                      title: const Text("Error"),
+                                      content: Text("Failed: $e"),
+                                      actions: [
+                                        TextButton(
+                                          onPressed:
+                                              () => Navigator.of(context).pop(),
+                                          child: const Text("OK"),
+                                        ),
+                                      ],
+                                    );
+                                  },
+                                );
+                              }
+                            },
+                            child: const Text("Save"),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                )
+                    )
                     : ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                  ),
-                  onPressed: () {
-                    setState(() {
-                      _editingCompany = true;
-                    });
-                  },
-                  child: const Text("Update Company"),
-                ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _editingCompany = true;
+                        });
+                      },
+                      child: const Text("Update Company"),
+                    ),
 
                 const SizedBox(height: 24),
-                const Text("My Certificates",
-                    style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white)),
+                const Text(
+                  "My Certificates",
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
                 const SizedBox(height: 12),
 
                 if (_rollNo == null || _rollNo!.trim().isEmpty)
@@ -401,16 +460,22 @@ class _StudentHomePageState extends State<StudentHomePage> {
                     ),
                     child: Column(
                       children: const [
-                        Icon(Icons.hourglass_empty, size: 32, color: Colors.white54),
+                        Icon(
+                          Icons.hourglass_empty,
+                          size: 32,
+                          color: Colors.white54,
+                        ),
                         SizedBox(height: 12),
-                        Text("No certificates yet.",
-                            style: TextStyle(color: Colors.white70)),
+                        Text(
+                          "No certificates yet.",
+                          style: TextStyle(color: Colors.white70),
+                        ),
                         SizedBox(height: 8),
                         Text(
                           "Check back later — the issuer might not have uploaded anything for your roll yet.",
                           textAlign: TextAlign.center,
                           style: TextStyle(color: Colors.white54),
-                        )
+                        ),
                       ],
                     ),
                   )

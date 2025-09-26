@@ -37,39 +37,45 @@ class _VerifierProfilePageState extends State<VerifierProfilePage> {
       backgroundColor: const Color(0xFF121212),
       appBar: AppBar(
         backgroundColor: const Color(0xFF1C1F2E),
-        title: const Text("Profile",style: TextStyle(color: Colors.white),),
+        title: const Text("Profile", style: TextStyle(color: Colors.white)),
         centerTitle: true,
       ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator(color: Colors.purpleAccent))
-          : Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            _buildProfileCard("Full Name", profile?['full_name'] ?? "-"),
-            const SizedBox(height: 15),
-            _buildProfileCard("Email", profile?['email'] ?? "-"),
-            const SizedBox(height: 15),
-            _buildProfileCard("Role", profile?['role'] ?? "-"),
-            const Spacer(),
-            ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.redAccent,
-                minimumSize: const Size(double.infinity, 50),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+      body:
+          _loading
+              ? const Center(
+                child: CircularProgressIndicator(color: Colors.purpleAccent),
+              )
+              : Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  children: [
+                    _buildProfileCard(
+                      "Full Name",
+                      profile?['full_name'] ?? "-",
+                    ),
+                    const SizedBox(height: 15),
+                    _buildProfileCard("Email", profile?['email'] ?? "-"),
+                    const SizedBox(height: 15),
+                    _buildProfileCard("Role", profile?['role'] ?? "-"),
+                    const Spacer(),
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.redAccent,
+                        minimumSize: const Size(double.infinity, 50),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: _logout,
+                      icon: const Icon(Icons.logout, color: Colors.white),
+                      label: const Text(
+                        "Logout",
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              onPressed: _logout,
-              icon: const Icon(Icons.logout, color: Colors.white),
-              label: const Text(
-                "Logout",
-                style: TextStyle(color: Colors.white),
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 
