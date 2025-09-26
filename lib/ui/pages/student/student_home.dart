@@ -15,11 +15,20 @@ class _StudentHomePageState extends State<StudentHomePage> {
   late Future<List<Map<String, dynamic>>> _certsFuture;
   String? _rollNo;
   String? _studentName;
+  String? _companyName;
+  final TextEditingController _companyController = TextEditingController();
+  bool _editingCompany = false; // toggle for showing textfield
 
   @override
   void initState() {
     super.initState();
     _certsFuture = _loadCertificates();
+  }
+
+  @override
+  void dispose() {
+    _companyController.dispose();
+    super.dispose();
   }
 
   Future<List<Map<String, dynamic>>> _loadCertificates() async {
@@ -31,6 +40,11 @@ class _StudentHomePageState extends State<StudentHomePage> {
 
     _studentName = profile?['full_name'] ?? profile?['name'] ?? 'Student';
     _rollNo = roll?.toString();
+
+    // Preload company name
+    _companyName = profile?['company_name'] ?? '';
+    _companyController.text = _companyName ?? '';
+
     if (_rollNo == null || _rollNo!.trim().isEmpty) {
       return [];
     }
@@ -205,37 +219,157 @@ class _StudentHomePageState extends State<StudentHomePage> {
             child: ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                // Profile block
+                // Profile + Student card
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: const Color(0xFF1C1F2E),
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  child: Row(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const CircleAvatar(
-                        backgroundColor: Color(0xFF7B61FF),
-                        child: Text("ST", style: TextStyle(color: Colors.white)),
-                      ),
-                      const SizedBox(width: 16),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      Row(
                         children: [
-                          const Text("Hello,", style: TextStyle(color: Colors.white70)),
-                          Text(_studentName ?? 'Student',
-                              style: const TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white)),
-                          Text("Roll: ${_rollNo ?? 'Not set'}",
-                              style: const TextStyle(
-                                  color: Colors.white54, fontSize: 12)),
+                          const CircleAvatar(
+                            backgroundColor: Color(0xFF7B61FF),
+                            child: Text("ST", style: TextStyle(color: Colors.white)),
+                          ),
+                          const SizedBox(width: 16),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text("Hello,", style: TextStyle(color: Colors.white70)),
+                              Text(_studentName ?? 'Student',
+                                  style: const TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white)),
+                              Text("Roll: ${_rollNo ?? 'Not set'}",
+                                  style: const TextStyle(
+                                      color: Colors.white54, fontSize: 12)),
+                            ],
+                          )
                         ],
-                      )
+                      ),
+                      const SizedBox(height: 12),
+                      // Display current company
+                      if (_companyName != null && _companyName!.isNotEmpty)
+                        Row(
+                          children: [
+                            const Icon(Icons.business, size: 18, color: Colors.greenAccent),
+                            const SizedBox(width: 8),
+                            Text(
+                              _companyName!,
+                              style: const TextStyle(
+                                  color: Colors.greenAccent, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
                     ],
                   ),
                 ),
+
+                const SizedBox(height: 16),
+
+                // Company update block (toggle visibility)
+                _editingCompany
+                    ? Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1C1F2E),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text("Enter Company Name",
+                          style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white)),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _companyController,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: InputDecoration(
+                          hintText: "Enter your company name",
+                          hintStyle: const TextStyle(color: Colors.white54),
+                          filled: true,
+                          fillColor: const Color(0xFF2A2D3E),
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide.none),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
+                        ),
+                        onPressed: () async {
+                          final company = _companyController.text.trim();
+                          if (company.isEmpty) return;
+
+                          try {
+                            await SupabaseService.updateStudentCompany(
+                                companyName: company);
+                            setState(() {
+                              _companyName = company;
+                              _editingCompany = false; // hide input
+                            });
+
+                            showDialog(
+                                context: context,
+                                builder: (_) {
+                                  return AlertDialog(
+                                    title: const Text("Success"),
+                                    content: const Text(
+                                        "Company name updated successfully."),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () =>
+                                            Navigator.of(context).pop(),
+                                        child: const Text("OK"),
+                                      )
+                                    ],
+                                  );
+                                });
+                          } catch (e) {
+                            showDialog(
+                                context: context,
+                                builder: (_) {
+                                  return AlertDialog(
+                                    title: const Text("Error"),
+                                    content: Text("Failed: $e"),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () =>
+                                            Navigator.of(context).pop(),
+                                        child: const Text("OK"),
+                                      )
+                                    ],
+                                  );
+                                });
+                          }
+                        },
+                        child: const Text("Save"),
+                      ),
+                    ],
+                  ),
+                )
+                    : ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _editingCompany = true;
+                    });
+                  },
+                  child: const Text("Update Company"),
+                ),
+
                 const SizedBox(height: 24),
                 const Text("My Certificates",
                     style: TextStyle(

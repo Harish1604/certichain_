@@ -12,6 +12,7 @@ class AllCertificatesPage extends StatefulWidget {
 class _AllCertificatesPageState extends State<AllCertificatesPage> {
   bool _loading = true;
   List<Map<String, dynamic>> certificates = [];
+  String _companyName = "";
 
   @override
   void initState() {
@@ -20,26 +21,39 @@ class _AllCertificatesPageState extends State<AllCertificatesPage> {
   }
 
   Future<void> _loadCertificates() async {
-    final data = await SupabaseService.fetchAllCertificates();
+    setState(() => _loading = true);
+
+    // Fetch verifier profile
+    final profile = await SupabaseService.getProfile();
+    _companyName = profile?['company_name'] ?? "";
+
+    // Fetch students in this company
+    final students = await SupabaseService.fetchStudentsByCompany(_companyName);
+    final rollNos = students.map((s) => s['roll_no']).whereType<String>().toList();
+
+    // Fetch all certificates, filter by student roll_no in this company
+    final allCerts = await SupabaseService.fetchAllCertificates();
+    final companyCerts = allCerts
+        .where((c) => rollNos.contains(c['student']?['roll_no']))
+        .toList();
+
     setState(() {
-      certificates = data;
+      certificates = companyCerts;
       _loading = false;
     });
   }
 
   void _verifyCertificate(Map<String, dynamic> cert) async {
-    await SupabaseService.logVerification(
-        certId: cert['cert_id'], result: 'verified');
-    ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Certificate Verified")));
+    await SupabaseService.logVerification(certId: cert['cert_id'], result: 'verified');
+    ScaffoldMessenger.of(context)
+        .showSnackBar(const SnackBar(content: Text("Certificate Verified")));
     _loadCertificates();
   }
 
   void _flagCertificate(Map<String, dynamic> cert) async {
-    await SupabaseService.flagCertificate(cert['cert_id'],
-        reason: "Verifier flagged");
-    ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Certificate Flagged")));
+    await SupabaseService.flagCertificate(cert['cert_id'], reason: "Verifier flagged");
+    ScaffoldMessenger.of(context)
+        .showSnackBar(const SnackBar(content: Text("Certificate Flagged")));
     _loadCertificates();
   }
 
@@ -57,6 +71,11 @@ class _AllCertificatesPageState extends State<AllCertificatesPage> {
           ? const Center(
         child: CircularProgressIndicator(color: Colors.purpleAccent),
       )
+          : certificates.isEmpty
+          ? const Center(
+        child: Text("No certificates found for your company",
+            style: TextStyle(color: Colors.white70)),
+      )
           : ListView.builder(
         padding: const EdgeInsets.all(16),
         itemCount: certificates.length,
@@ -73,7 +92,7 @@ class _AllCertificatesPageState extends State<AllCertificatesPage> {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // ---- LEFT SIDE (Details) ----
+                  // LEFT SIDE: Details
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -106,17 +125,15 @@ class _AllCertificatesPageState extends State<AllCertificatesPage> {
                     ),
                   ),
 
-                  // ---- RIGHT SIDE (Actions) ----
+                  // RIGHT SIDE: Actions
                   Column(
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.verified,
-                            color: Colors.green),
+                        icon: const Icon(Icons.verified, color: Colors.green),
                         onPressed: () => _verifyCertificate(cert),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.flag,
-                            color: Colors.redAccent),
+                        icon: const Icon(Icons.flag, color: Colors.redAccent),
                         onPressed: () => _flagCertificate(cert),
                       ),
                     ],

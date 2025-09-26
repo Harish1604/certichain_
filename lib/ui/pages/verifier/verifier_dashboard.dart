@@ -15,6 +15,9 @@ class _VerifierDashboardState extends State<VerifierDashboard> {
   List<Map<String, dynamic>> _filteredStudents = [];
   bool _loading = true;
 
+  String _companyName = "";
+  Map<String, dynamic>? _profile;
+
   int verifiedCount = 0;
   int flaggedCount = 0;
   int totalCount = 0;
@@ -22,45 +25,50 @@ class _VerifierDashboardState extends State<VerifierDashboard> {
   @override
   void initState() {
     super.initState();
-    _loadStudents();
+    _loadDashboard();
   }
 
-  Future<void> _loadStudents() async {
+  Future<void> _loadDashboard() async {
     setState(() => _loading = true);
-    final allCerts = await SupabaseService.fetchAllCertificates();
 
-    // Aggregate students
-    Map<String, Map<String, dynamic>> studentsMap = {};
-    int verified = 0, flagged = 0;
+    // 1️⃣ Fetch verifier profile
+    final profile = await SupabaseService.getProfile();
+    _profile = profile;
+    _companyName = profile?['company_name'] ?? "";
 
-    for (var cert in allCerts) {
-      final student = cert['student'];
-      if (student == null) continue;
+    // 2️⃣ Fetch students of this company
+    final students = await SupabaseService.fetchStudentsByCompany(_companyName);
 
-      final key = student['roll_no'] ?? student['full_name'];
-      if (!studentsMap.containsKey(key)) {
-        studentsMap[key] = {
-          'full_name': student['full_name'],
-          'roll_no': student['roll_no'],
-          'certificates': []
-        };
-      }
-      studentsMap[key]!['certificates'].add(cert);
+    // 3️⃣ Aggregate certificates
+    int verified = 0;
+    int flagged = 0;
+    int total = 0;
+    List<Map<String, dynamic>> studentsWithCerts = [];
 
-      if ((cert['status'] ?? 'active') == 'flagged') {
-        flagged++;
-      } else {
-        verified++;
+    for (var student in students) {
+      final rollNo = student['roll_no'];
+      if (rollNo == null) continue;
+
+      final certs = await SupabaseService.fetchCertificatesByRoll(rollNo);
+
+      if (certs.isNotEmpty) {
+        verified += certs.where((c) => (c['status'] ?? 'active') != 'flagged').length;
+        flagged += certs.where((c) => (c['status'] ?? 'active') == 'flagged').length;
+        total += certs.length;
+
+        studentsWithCerts.add({
+          ...student,
+          'certificates': certs,
+        });
       }
     }
 
-    _students = studentsMap.values.toList();
-    _filteredStudents = List.from(_students);
-
     setState(() {
+      _students = studentsWithCerts;
+      _filteredStudents = List.from(_students);
       verifiedCount = verified;
       flaggedCount = flagged;
-      totalCount = allCerts.length;
+      totalCount = total;
       _loading = false;
     });
   }
@@ -92,8 +100,7 @@ class _VerifierDashboardState extends State<VerifierDashboard> {
           children: [
             Icon(icon, color: color, size: 28),
             const SizedBox(height: 8),
-            Text(title,
-                style: TextStyle(color: color, fontWeight: FontWeight.bold)),
+            Text(title, style: TextStyle(color: color, fontWeight: FontWeight.bold)),
             const SizedBox(height: 4),
             Text(count.toString(),
                 style: const TextStyle(
@@ -104,6 +111,67 @@ class _VerifierDashboardState extends State<VerifierDashboard> {
     );
   }
 
+  Widget _buildCompanyCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      margin: const EdgeInsets.only(bottom: 20),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E1E2C),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.purpleAccent.withOpacity(0.5)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.purpleAccent.withOpacity(0.2),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          // Company icon
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.purpleAccent,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(Icons.apartment, color: Colors.white, size: 28),
+          ),
+          const SizedBox(width: 16),
+
+          // Company name text
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  "Verifier Company",
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  "${_profile?['full_name'] ?? '-'}",
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -111,8 +179,7 @@ class _VerifierDashboardState extends State<VerifierDashboard> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title:
-        const Text("Verifier Dashboard", style: TextStyle(color: Colors.white)),
+        title: const Text("Verifier Dashboard", style: TextStyle(color: Colors.white)),
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator(color: Colors.purpleAccent))
@@ -120,6 +187,9 @@ class _VerifierDashboardState extends State<VerifierDashboard> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
+            // ==== COMPANY CARD ====
+            _buildCompanyCard(),
+
             // ==== DASHBOARD STATS ====
             Row(
               children: [

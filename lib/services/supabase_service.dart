@@ -278,4 +278,33 @@ class SupabaseService {
       throw Exception("Failed to approve certificate");
     }
   }
+
+
+  // ---------------- UPDATE STUDENT COMPANY ----------------
+  static Future<void> updateStudentCompany({
+    required String companyName,
+  }) async {
+    final user = client.auth.currentUser;
+    if (user == null) throw Exception("No logged in user");
+
+    await client
+        .from('profiles')
+        .update({'company_name': companyName})
+        .eq('id', user.id);
+  }
+
+
+  // ---------------- FETCH STUDENTS BY COMPANY ----------------
+  static Future<List<Map<String, dynamic>>> fetchStudentsByCompany(
+      String companyName) async {
+    final data = await client
+        .from('profiles')
+        .select('id, full_name, roll_no, email, company_name')
+        .eq('role', 'student')
+        .eq('company_name', companyName);
+
+    return List<Map<String, dynamic>>.from(data);
+  }
+
+
 }
