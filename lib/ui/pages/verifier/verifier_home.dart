@@ -17,6 +17,7 @@ class _VerifierHomeState extends State<VerifierHomePage> {
     const VerifierProfilePage(),
   ];
 
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -33,10 +34,7 @@ class _VerifierHomeState extends State<VerifierHomePage> {
             label: "Dashboard",
           ),
 
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: "Profile",
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
         ],
       ),
     );
