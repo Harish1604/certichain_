@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'verifier_dashboard.dart';
 import 'profile_page.dart';
-import 'all_certificates_page.dart';
 
 class VerifierHomePage extends StatefulWidget {
   const VerifierHomePage({super.key});
@@ -15,7 +14,6 @@ class _VerifierHomeState extends State<VerifierHomePage> {
 
   final List<Widget> _pages = [
     const VerifierDashboard(),
-    const AllCertificatesPage(),
     const VerifierProfilePage(),
   ];
 
@@ -34,10 +32,7 @@ class _VerifierHomeState extends State<VerifierHomePage> {
             icon: Icon(Icons.dashboard),
             label: "Dashboard",
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.list_alt),
-            label: "All Certificates",
-          ),
+
           BottomNavigationBarItem(
             icon: Icon(Icons.person),
             label: "Profile",

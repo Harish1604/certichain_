@@ -31,15 +31,12 @@ class _VerifierDashboardState extends State<VerifierDashboard> {
   Future<void> _loadDashboard() async {
     setState(() => _loading = true);
 
-    // 1️⃣ Fetch verifier profile
     final profile = await SupabaseService.getProfile();
     _profile = profile;
-    _companyName = profile?['company_name'] ?? "";
+    _companyName = profile?['full_name'] ?? "";
 
-    // 2️⃣ Fetch students of this company
     final students = await SupabaseService.fetchStudentsByCompany(_companyName);
 
-    // 3️⃣ Aggregate certificates
     int verified = 0;
     int flagged = 0;
     int total = 0;
@@ -50,7 +47,6 @@ class _VerifierDashboardState extends State<VerifierDashboard> {
       if (rollNo == null) continue;
 
       final certs = await SupabaseService.fetchCertificatesByRoll(rollNo);
-
       if (certs.isNotEmpty) {
         verified += certs.where((c) => (c['status'] ?? 'active') != 'flagged').length;
         flagged += certs.where((c) => (c['status'] ?? 'active') == 'flagged').length;
@@ -100,7 +96,8 @@ class _VerifierDashboardState extends State<VerifierDashboard> {
           children: [
             Icon(icon, color: color, size: 28),
             const SizedBox(height: 8),
-            Text(title, style: TextStyle(color: color, fontWeight: FontWeight.bold)),
+            Text(title,
+                style: TextStyle(color: color, fontWeight: FontWeight.bold)),
             const SizedBox(height: 4),
             Text(count.toString(),
                 style: const TextStyle(
@@ -114,63 +111,37 @@ class _VerifierDashboardState extends State<VerifierDashboard> {
   Widget _buildCompanyCard() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      margin: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E1E2C),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.purpleAccent.withOpacity(0.5)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.purpleAccent.withOpacity(0.2),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        color: const Color(0xFF1C1F2E),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.purpleAccent.withOpacity(0.4)),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Company icon
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.purpleAccent,
-              borderRadius: BorderRadius.circular(12),
+          const Text(
+            "Company",
+            style: TextStyle(
+              color: Colors.white70,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
             ),
-            child: const Icon(Icons.apartment, color: Colors.white, size: 28),
           ),
-          const SizedBox(width: 16),
-
-          // Company name text
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  "Verifier Company",
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  "${_profile?['full_name'] ?? '-'}",
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
+          const SizedBox(height: 6),
+          Text(
+            _companyName.isNotEmpty ? _companyName : "-",
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
             ),
           ),
         ],
       ),
     );
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -179,18 +150,17 @@ class _VerifierDashboardState extends State<VerifierDashboard> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Text("Verifier Dashboard", style: TextStyle(color: Colors.white)),
+        title:
+        const Text("Verifier Dashboard", style: TextStyle(color: Colors.white)),
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: Colors.purpleAccent))
+          ? const Center(
+          child: CircularProgressIndicator(color: Colors.purpleAccent))
           : Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            // ==== COMPANY CARD ====
             _buildCompanyCard(),
-
-            // ==== DASHBOARD STATS ====
             Row(
               children: [
                 _statCard("Verified", verifiedCount, Colors.green, Icons.verified),
@@ -199,8 +169,6 @@ class _VerifierDashboardState extends State<VerifierDashboard> {
               ],
             ),
             const SizedBox(height: 16),
-
-            // ==== SEARCH BOX ====
             TextField(
               controller: _searchController,
               onChanged: _filterStudents,
@@ -217,8 +185,6 @@ class _VerifierDashboardState extends State<VerifierDashboard> {
               style: const TextStyle(color: Colors.white),
             ),
             const SizedBox(height: 16),
-
-            // ==== STUDENT LIST ====
             Expanded(
               child: _filteredStudents.isEmpty
                   ? const Center(
@@ -255,14 +221,18 @@ class _VerifierDashboardState extends State<VerifierDashboard> {
                           style: const TextStyle(color: Colors.white70)),
                       trailing: const Icon(Icons.arrow_forward_ios,
                           color: Colors.white70, size: 16),
-                      onTap: () {
-                        Navigator.push(
+                      onTap: () async {
+                        final result = await Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (_) =>
                                 CertificatePage(student: student),
                           ),
                         );
+                        // If certificates changed, reload counts
+                        if (result == true) {
+                          _loadDashboard();
+                        }
                       },
                     ),
                   );

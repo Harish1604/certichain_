@@ -13,6 +13,60 @@ class CertificatePage extends StatefulWidget {
 }
 
 class _CertificatePageState extends State<CertificatePage> {
+  bool _loadingAction = false;
+
+  Future<void> _updateCertificateStatus(String certId, String newStatus) async {
+    setState(() => _loadingAction = true);
+
+    try {
+      if (newStatus == 'flagged') {
+        await SupabaseService.flagCertificate(certId, reason: 'Verifier flagged as suspicious');
+      } else if (newStatus == 'active') {
+        await SupabaseService.approveCertificate(certId);
+      }
+
+      // Update local UI
+      final certIndex = widget.student['certificates']
+          .indexWhere((c) => c['cert_id'] == certId);
+      if (certIndex != -1) {
+        setState(() => widget.student['certificates'][certIndex]['status'] = newStatus);
+      }
+
+      // Tell dashboard to refresh counts
+      Navigator.of(context).pop(true);
+
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error: ${e.toString()}")));
+    } finally {
+      setState(() => _loadingAction = false);
+    }
+  }
+
+  Future<void> _confirmAction(String certId, String action) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text("$action Certificate"),
+        content: Text("Are you sure you want to $action this certificate?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text("OK"),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await _updateCertificateStatus(certId, action == 'Flag' ? 'flagged' : 'active');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final student = widget.student;
@@ -21,15 +75,10 @@ class _CertificatePageState extends State<CertificatePage> {
     return Scaffold(
       backgroundColor: const Color(0xFF0A0E21),
       appBar: AppBar(
-        title: Text(
-          "${student['full_name']} (${student['roll_no']})",
-          style: const TextStyle(
-              color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        centerTitle: true,
+        title: Text("${student['full_name']} (${student['roll_no']})",
+            style: const TextStyle(color: Colors.white)),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: certs.isEmpty
           ? const Center(
@@ -44,8 +93,7 @@ class _CertificatePageState extends State<CertificatePage> {
           final verified = status == 'active';
           final tx = cert['tx_signature'];
           final cid = cert['cid'];
-          final ipfsUrl =
-          cid != null ? 'https://ipfs.io/ipfs/$cid' : null;
+          final ipfsUrl = cid != null ? 'https://ipfs.io/ipfs/$cid' : null;
 
           return Container(
             margin: const EdgeInsets.only(bottom: 16),
@@ -73,8 +121,7 @@ class _CertificatePageState extends State<CertificatePage> {
                     children: [
                       Icon(
                         verified ? Icons.verified : Icons.flag,
-                        color:
-                        verified ? Colors.greenAccent : Colors.red,
+                        color: verified ? Colors.greenAccent : Colors.red,
                         size: 28,
                       ),
                       const SizedBox(width: 8),
@@ -111,12 +158,10 @@ class _CertificatePageState extends State<CertificatePage> {
                     ElevatedButton.icon(
                       icon: const Icon(Icons.copy),
                       onPressed: () {
-                        Clipboard.setData(
-                            ClipboardData(text: ipfsUrl));
+                        Clipboard.setData(ClipboardData(text: ipfsUrl));
                         ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
-                                content:
-                                Text("IPFS link copied ✅")));
+                                content: Text("IPFS link copied ✅")));
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.blueAccent,
@@ -133,14 +178,10 @@ class _CertificatePageState extends State<CertificatePage> {
                       Expanded(
                         child: ElevatedButton.icon(
                           icon: const Icon(Icons.flag),
-                          onPressed: () async {
-                            await SupabaseService.flagCertificate(
-                                cert['cert_id'],
-                                reason:
-                                "Verifier flagged as suspicious");
-                            setState(() =>
-                            cert['status'] = 'flagged');
-                          },
+                          onPressed: _loadingAction
+                              ? null
+                              : () =>
+                              _confirmAction(cert['cert_id'], 'Flag'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.redAccent,
                             minimumSize: const Size.fromHeight(42),
@@ -155,12 +196,10 @@ class _CertificatePageState extends State<CertificatePage> {
                       Expanded(
                         child: ElevatedButton.icon(
                           icon: const Icon(Icons.verified),
-                          onPressed: () async {
-                            await SupabaseService.approveCertificate(
-                                cert['cert_id']);
-                            setState(() =>
-                            cert['status'] = 'active');
-                          },
+                          onPressed: _loadingAction
+                              ? null
+                              : () =>
+                              _confirmAction(cert['cert_id'], 'Approve'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.green,
                             minimumSize: const Size.fromHeight(42),

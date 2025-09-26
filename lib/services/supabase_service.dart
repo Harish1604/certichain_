@@ -207,78 +207,50 @@ class SupabaseService {
 
   // ---------------- FETCH CERTIFICATES BY ROLL NO ----------------
   static Future<List<Map<String, dynamic>>> fetchCertificatesByRollNo(
-    String rollNo,
-  ) async {
-    final student =
-        await client
-            .from('profiles')
-            .select('id, full_name, roll_no')
-            .eq('roll_no', rollNo)
-            .eq('role', 'student')
-            .maybeSingle();
+      String rollNo,
+      ) async {
+    final student = await client
+        .from('profiles')
+        .select('id, full_name, roll_no')
+        .eq('roll_no', rollNo)
+        .eq('role', 'student')
+        .maybeSingle();
 
     if (student == null) return [];
 
     final data = await client
         .from('certificates')
         .select(
-          'file_name, cid, hash, created_at, tx_signature, student:profiles(full_name, roll_no)',
-        )
+      'cert_id, file_name, cid, hash, status, created_at, tx_signature, student:profiles(full_name, roll_no)',
+    )
         .eq('student_id', student['id'])
         .order('created_at', ascending: false);
 
     return List<Map<String, dynamic>>.from(data);
   }
 
-  // ---------------- FETCH CERTIFICATES BY ROLL (alias) ----------------
+// ---------------- FETCH CERTIFICATES BY ROLL (alias) ----------------
   static Future<List<Map<String, dynamic>>> fetchCertificatesByRoll(
-    String rollNo,
-  ) async {
-    final student =
-        await client
-            .from('profiles')
-            .select('id')
-            .eq('roll_no', rollNo)
-            .maybeSingle();
+      String rollNo,
+      ) async {
+    final student = await client
+        .from('profiles')
+        .select('id')
+        .eq('roll_no', rollNo)
+        .maybeSingle();
 
     if (student == null) return [];
 
     final data = await client
         .from('certificates')
         .select(
-          'file_name, cid, hash, created_at, tx_signature, student:profiles(full_name, roll_no)',
-        )
+      'cert_id, file_name, cid, hash, status, created_at, tx_signature, student:profiles(full_name, roll_no)',
+    )
         .eq('student_id', student['id'])
         .order('created_at', ascending: false);
 
     return List<Map<String, dynamic>>.from(data);
   }
-
-  // ---------------- FLAG CERTIFICATE ----------------
-  static Future<void> flagCertificate(String certId, {String? reason}) async {
-    await client
-        .from('certificates')
-        .update({
-          'status': 'flagged',
-          'flag_reason': reason ?? 'Forgery suspected',
-        })
-        .eq('cert_id', certId);
-  }
-
-  // SupabaseService.dart
-  static Future<void> approveCertificate(String certId) async {
-    final response =
-        await Supabase.instance.client
-            .from('certificates')
-            .update({'status': 'active'})
-            .eq('cert_id', certId)
-            .select(); // use select() to get the updated row(s)
-
-    if (response == null) {
-      throw Exception("Failed to approve certificate");
-    }
-  }
-
 
   // ---------------- UPDATE STUDENT COMPANY ----------------
   static Future<void> updateStudentCompany({
@@ -305,6 +277,50 @@ class SupabaseService {
 
     return List<Map<String, dynamic>>.from(data);
   }
+
+
+  // ---------------- APPROVE CERTIFICATE ----------------
+  static Future<void> approveCertificate(String certId) async {
+    await client
+        .from('certificates')
+        .update({'status': 'active'})
+        .eq('cert_id', certId);
+  }
+
+  // ---------------- FLAG CERTIFICATE ----------------
+  static Future<void> flagCertificate(String certId, {String reason = "Suspicious"}) async {
+    // Update the certificate status
+    await client.from('certificates').update({
+      'status': 'flagged',
+    }).eq('cert_id', certId);
+
+    // Log the verification in the verifications table
+    final user = client.auth.currentUser;
+    await client.from('verifications').insert({
+      'verifier_id': user?.id,
+      'cert_id': certId,
+      'result': 'flagged',
+      'meta': {'reason': reason},
+    });
+  }
+
+  // ---------------- UNFLAG CERTIFICATE ----------------
+  static Future<void> unflagCertificate(String certId) async {
+    await client.from('certificates').update({
+      'status': 'active',
+    }).eq('cert_id', certId);
+
+    // Optionally log in verifications
+    final user = client.auth.currentUser;
+    await client.from('verifications').insert({
+      'verifier_id': user?.id,
+      'cert_id': certId,
+      'result': 'unflagged',
+      'meta': {},
+    });
+  }
+
+
 
 
 }
